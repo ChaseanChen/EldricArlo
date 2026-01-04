@@ -27,12 +27,6 @@
 <br/>
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/ChaseanChen/ChaseanChen/output/metrics.svg" width="100%" alt="Half Year Stats"/>
-</div>
-
-<br/>
-
-<div align="center">
   <a href="https://github.com/ChaseanChen">
     <img src="https://raw.githubusercontent.com/ChaseanChen/ChaseanChen/output/activity_graph_framed.svg" alt="My Activity Graph" width="100%" />
   </a>
@@ -44,6 +38,10 @@
     <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/ChaseanChen/ChaseanChen/output/github-contribution-grid-snake.svg">
     <img alt="github contribution grid snake animation" src="https://raw.githubusercontent.com/ChaseanChen/ChaseanChen/output/github-contribution-grid-snake.svg">
   </picture>
+</div>
+
+<div align="center">
+  <img src="https://raw.githubusercontent.com/ChaseanChen/ChaseanChen/output/profile-night-rainbow.svg" width="100%" alt="3d stats"/>
 </div>
 
 <h2 align="center">Connect with me</h2>

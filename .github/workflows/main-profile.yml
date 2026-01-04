@@ -40,16 +40,19 @@ jobs:
           config_timezone: Asia/Shanghai
           plugin_isocalendar: yes
           plugin_isocalendar_duration: half-year
+          
           filename: metrics.svg
           output_action: none
-          verify: no
+          
           debug: yes
+          debug_print: yes
+          verify: yes 
 
-      - name: Debug - List Files
+      - name: Debug - Show Files
         run: |
-          echo "Listing root directory:"
+          echo "=== 根目录文件列表 ==="
           ls -la
-          echo "Listing dist directory:"
+          echo "=== dist 目录文件列表 ==="
           ls -la dist/
 
       - name: Style and Move Metrics
@@ -61,14 +64,15 @@ jobs:
           source_file = 'metrics.svg'
           target_file = 'dist/metrics.svg'
 
-          print(f"Looking for source file at: {os.path.abspath(source_file)}")
+          print(f"Checking existence of: {os.path.abspath(source_file)}")
 
           if not os.path.exists(source_file):
-              print("❌ ERROR: metrics.svg not found in root directory!")
-              print("Did the 'Generate Half-Year Metrics' step fail? Check the logs above.")
+              print("❌ 严重错误: metrics.svg 文件不存在！")
+              print("原因分析: 上一步 'Generate Half-Year Metrics' 虽然运行了，但没有生成文件。")
+              print("请检查上一步的日志，寻找 'Resource not accessible' 或 '403 Forbidden' 错误。")
               sys.exit(1)
-          else:
-              print("✅ Found metrics.svg! Processing...")
+          
+          print("✅ 找到文件，开始添加圆角边框...")
 
           try:
               with open(source_file, 'r', encoding='utf-8') as f:
@@ -84,10 +88,10 @@ jobs:
               with open(target_file, 'w', encoding='utf-8') as f:
                   f.write(svg_content)
               
-              print(f"✅ Success! Styled SVG saved to {target_file}")
+              print(f"✅ 处理完成，文件已保存到 {target_file}")
 
           except Exception as e:
-              print(f"❌ Error during processing: {e}")
+              print(f"❌ 处理 SVG 时出错: {e}")
               sys.exit(1)
 
       - name: Generate Random ASCII Art

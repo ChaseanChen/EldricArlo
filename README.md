@@ -40,10 +40,6 @@
   </picture>
 </div>
 
-<div align="center">
-  <img src="https://raw.githubusercontent.com/ChaseanChen/ChaseanChen/output/profile-night-rainbow.svg" width="100%" alt="3d stats"/>
-</div>
-
 <h2 align="center">Connect with me</h2>
 
 <p align="center">

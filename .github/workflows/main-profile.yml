@@ -23,12 +23,6 @@ jobs:
             dist/github-contribution-grid-snake-dark.svg?palette=github-dark
             dist/github-contribution-grid-snake.gif?color_snake=orange&color_dots=#bfd6f6,#8dbdff,#64a1f4,#4b91f1,#3c7dd9
 
-      - name: Generate 3D Profile
-        uses: yoshi389111/github-profile-3d-contrib@0.7.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          USERNAME: ${{ github.repository_owner }}
-
       - name: Fix permissions
         run: |
           if [ -d "dist" ]; then
@@ -36,39 +30,6 @@ jobs:
           else
             mkdir dist
           fi
-            
-      - name: Move 3D files and Apply Theme
-        shell: python
-        run: |
-          import os
-          import re
-
-          if not os.path.exists('dist'):
-              os.makedirs('dist')
-
-          source_path = 'profile-3d-contrib/profile-night-rainbow.svg'
-          target_path = 'dist/profile-night-rainbow.svg'
-
-          if os.path.exists(source_path):
-              with open(source_path, 'r', encoding='utf-8') as f:
-                  svg_data = f.read()
-
-              THEME_BG = "#44475a"
-              THEME_FG = "#f8f8f2"
-              BORDER_COLOR = "#ffffff"
-              BORDER_WIDTH = "3"
-
-              svg_data = svg_data.replace('stroke="none"', '')
-              
-              replacement = f'fill="{THEME_BG}" stroke="{BORDER_COLOR}" stroke-width="{BORDER_WIDTH}" rx="20" ry="20"'
-              svg_data = re.sub(r'fill=["\'][^"\']*["\']', replacement, svg_data, count=1)
-
-              svg_data = svg_data.replace('#e4e2e2', THEME_FG)
-
-              with open(target_path, 'w', encoding='utf-8') as f:
-                  f.write(svg_data)
-          else:
-              print("Warning: 3D Profile source file not found.")
 
       - name: Generate Random ASCII Art
         shell: python

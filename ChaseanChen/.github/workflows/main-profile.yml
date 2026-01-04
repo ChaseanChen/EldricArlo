@@ -1,0 +1,162 @@
+name: Generate Profile Assets
+
+on:
+  schedule:
+    - cron: "0 */12 * * *"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate Snake
+        uses: Platane/snk@v3
+        with:
+          github_user_name: ${{ github.repository_owner }}
+          outputs: |
+            dist/github-contribution-grid-snake.svg
+            dist/github-contribution-grid-snake-dark.svg?palette=github-dark
+            dist/github-contribution-grid-snake.gif?color_snake=orange&color_dots=#bfd6f6,#8dbdff,#64a1f4,#4b91f1,#3c7dd9
+
+      - name: Generate 3D Profile
+        uses: yoshi389111/github-profile-3d-contrib@0.7.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          USERNAME: ${{ github.repository_owner }}
+            
+      - name: Move 3D files to dist and Apply Theme
+        run: |
+          sudo mkdir -p dist
+          sudo chown -R $USER:$USER dist
+
+          cp profile-3d-contrib/profile-night-rainbow.svg dist/
+
+          DRACULA_BG="#282a36"
+          DRACULA_FG="#f8f8f2"
+          BORDER_COLOR="#f8f8f2"
+          BORDER_WIDTH="5" 
+
+          sed -i 's/stroke="none"//g' dist/profile-night-rainbow.svg
+          sed -i "0,/fill=[\"'][^\"']*[\"']/s//fill=\"$DRACULA_BG\" stroke=\"$BORDER_COLOR\" stroke-width=\"$BORDER_WIDTH\" rx=\"50\" ry=\"50\"/" dist/profile-night-rainbow.svg
+          sed -i "s/fill=[\"']#e4e2e2[\"']/fill=\"$DRACULA_FG\"/g" dist/profile-night-rainbow.svg
+
+      - name: Generate Random ASCII Art
+        shell: python
+        run: |
+          import random
+          import os
+          import html
+
+          art_dir = "ascii_arts"
+          output_dir = "dist"
+          fallback_art = "Hello\nWorld" 
+
+          if not os.path.exists(output_dir):
+              os.makedirs(output_dir)
+
+          selected_art = fallback_art
+          if not os.path.exists(art_dir):
+              print(f"Warning: Directory '{art_dir}' not found. Using fallback text.")
+          else:
+              files = [f for f in os.listdir(art_dir) if f.endswith('.txt')]
+              if not files:
+                  print("Warning: No .txt files found. Using fallback text.")
+              else:
+                  selected_file = random.choice(files)
+                  try:
+                      with open(os.path.join(art_dir, selected_file), "r", encoding="utf-8") as f:
+                          selected_art = f.read()
+                  except Exception as e:
+                      print(f"Error reading file: {e}. Using fallback.")
+
+          selected_art = selected_art.strip("\n")
+          lines = selected_art.split("\n")
+          
+          line_height_px = 18 
+          padding_y = 60 
+          content_height = len(lines) * line_height_px
+          final_height = max(200, content_height + padding_y)
+
+          max_char_count = 0
+          for line in lines:
+              if len(line) > max_char_count:
+                  max_char_count = len(line)
+          
+          char_width_px = 9.2 
+          art_width_px = max_char_count * char_width_px
+          
+          svg_width = 600
+          start_x = (svg_width - art_width_px) / 2
+          if start_x < 20: start_x = 20
+
+          tspans = ""
+          for line in lines:
+              safe_line = html.escape(line)
+              tspans += f'<tspan x="{start_x}" dy="1.2em">{safe_line}</tspan>'
+
+          border_color = "#f8f8f2"
+          border_width = 2
+          bg_color = "#282a36"
+          
+          rect_x = border_width / 2
+          rect_y = border_width / 2
+          rect_w = svg_width - border_width
+          rect_h = final_height - border_width
+
+          svg_content = f"""<svg fill="none" viewBox="0 0 {svg_width} {final_height}" width="100%" height="{final_height}" xmlns="http://www.w3.org/2000/svg">
+            <rect x="{rect_x}" y="{rect_y}" width="{rect_w}" height="{rect_h}" fill="{bg_color}" rx="15" ry="15" stroke="{border_color}" stroke-width="{border_width}" />
+            <text x="{start_x}" y="30" 
+                  font-family="Courier New, Courier, monospace" 
+                  font-weight="bold" 
+                  font-size="15" 
+                  fill="{border_color}" 
+                  xml:space="preserve">{tspans}</text>
+          </svg>"""
+
+          with open(f"{output_dir}/ascii_art.svg", "w", encoding="utf-8") as f:
+              f.write(svg_content)
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Generate Framed Activity Graph
+        shell: python
+        run: |
+          import requests
+          import os
+
+          url = "https://github-readme-activity-graph.vercel.app/graph?username=chaseanchen&bg_color=44475a&color=f8f8f2&line=ff79c6&point=bd93f9&area=true&hide_border=true"
+          output_dir = "dist"
+          file_name = "activity_graph_framed.svg"
+          
+          response = requests.get(url)
+          if response.status_code == 200:
+              original_svg = response.text
+              
+              border_color = "#ffffff"
+              border_width = 3
+              radius = 20
+              
+              modified_svg = original_svg.replace('rx="0"', f'rx="{radius}"').replace('ry="0"', f'ry="{radius}"')
+              
+              border_rect = f'<rect x="2" y="2" width="99.5%" height="98.5%" fill="none" stroke="{border_color}" stroke-width="{border_width}" rx="{radius}" ry="{radius}" />'
+              
+              if "</svg>" in modified_svg:
+                  modified_svg = modified_svg.replace("</svg>", f"{border_rect}</svg>")
+
+              with open(f"{output_dir}/{file_name}", "w", encoding="utf-8") as f:
+                  f.write(modified_svg)
+
+      - name: Push all assets to output branch
+        uses: crazy-max/ghaction-github-pages@v4
+        with:
+          target_branch: output
+          build_dir: dist
+          keep_history: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

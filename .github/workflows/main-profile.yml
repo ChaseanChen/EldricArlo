@@ -40,24 +40,24 @@ jobs:
           filename: metrics.svg
           output_action: none
 
+      - name: Fix Permissions
+        run: |
+          sudo chown -R $USER:$USER .
+          mkdir -p dist
+
       - name: Prepare dist and Fix Metrics
         shell: python
         run: |
           import os
-          if not os.path.exists('dist'):
-              os.makedirs('dist')
-          
           source = 'metrics.svg'
           target = 'dist/metrics.svg'
           if os.path.exists(source):
               with open(source, 'r', encoding='utf-8') as f:
                   svg = f.read()
-              
               svg = svg.replace('<svg ', '<svg style="border-radius:20px;" ')
               border_rect = '<rect x="1" y="1" width="99%" height="98%" fill="none" stroke="#ffffff" stroke-width="2" rx="20" ry="20" />'
               if "</svg>" in svg:
                   svg = svg.replace("</svg>", f"{border_rect}</svg>")
-              
               with open(target, 'w', encoding='utf-8') as f:
                   f.write(svg)
 
@@ -67,14 +67,9 @@ jobs:
           import random
           import os
           import html
-
           art_dir = "ascii_arts"
           output_dir = "dist"
           fallback_art = "Hello\nWorld" 
-
-          if not os.path.exists(output_dir):
-              os.makedirs(output_dir)
-
           selected_art = fallback_art
           if os.path.exists(art_dir):
               files = [f for f in os.listdir(art_dir) if f.endswith('.txt')]
@@ -85,7 +80,6 @@ jobs:
                           selected_art = f.read()
                   except:
                       pass
-
           lines = selected_art.strip("\n").split("\n")
           line_height_px = 18 
           padding_y = 60 
@@ -96,12 +90,10 @@ jobs:
           final_height = max(200, len(lines) * line_height_px + padding_y)
           start_x = (svg_width - art_width_px) / 2
           tspans = "".join([f'<tspan x="{start_x}" dy="1.2em">{html.escape(line)}</tspan>' for line in lines])
-
           svg_content = f"""<svg fill="none" viewBox="0 0 {svg_width} {final_height}" width="{svg_width}" height="{final_height}" xmlns="http://www.w3.org/2000/svg">
             <rect x="2" y="2" width="{svg_width-4}" height="{final_height-4}" fill="#44475a" rx="20" ry="20" stroke="#ffffff" stroke-width="2" />
             <text x="{start_x}" y="40" font-family="monospace" font-weight="bold" font-size="15" fill="#f8f8f2" xml:space="preserve">{tspans}</text>
           </svg>"""
-
           with open(f"{output_dir}/ascii_art.svg", "w", encoding="utf-8") as f:
               f.write(svg_content)
 

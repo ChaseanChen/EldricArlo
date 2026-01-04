@@ -22,20 +22,13 @@
 
 <div align="center">
   <img src="https://readme-flame.vercel.app/api?username=ChaseanChen&show_icons=true&theme=tokyonight&count_private=true" height="180" alt="stats" />
-  <!--<img src="https://readme-flame.vercel.app/api/top-langs/?username=ChaseanChen&theme=tokyonight" height="180" alt="langs" />-->
 </div>
 
 <br/>
 
-<!-- <div align="center">
-  <a href="https://github.com/ashutosh00710/github-readme-activity-graph">
-    <img src="https://github-readme-activity-graph.vercel.app/graph?username=chaseanchen&bg_color=44475a&color=f8f8f2&line=ff79c6&point=bd93f9&area=true&hide_border=true" alt="Ashutosh's github activity graph" />
-  </a>
-</div> -->
-
 <div align="center">
-  <a href="https://github.com/ashutosh00710/github-readme-activity-graph">
-    <img src="https://raw.githubusercontent.com/ChaseanChen/ChaseanChen/output/activity_graph_framed.svg" alt="My Activity Graph" />
+  <a href="https://github.com/ChaseanChen">
+    <img src="https://raw.githubusercontent.com/ChaseanChen/ChaseanChen/output/activity_graph_framed.svg" alt="My Activity Graph" width="100%" />
   </a>
 </div>
 

@@ -29,21 +29,38 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           USERNAME: ${{ github.repository_owner }}
             
-      - name: Move 3D files to dist and Apply Theme
+      - name: Move 3D files and Apply Theme
+        shell: python
         run: |
-          sudo mkdir -p dist
-          sudo chown -R $USER:$USER dist
+          import os
+          import re
 
-          cp profile-3d-contrib/profile-night-rainbow.svg dist/
+          if not os.path.exists('dist'):
+              os.makedirs('dist')
 
-          DRACULA_BG="#282a36"
-          DRACULA_FG="#f8f8f2"
-          BORDER_COLOR="#f8f8f2"
-          BORDER_WIDTH="5" 
+          source_path = 'profile-3d-contrib/profile-night-rainbow.svg'
+          target_path = 'dist/profile-night-rainbow.svg'
 
-          sed -i 's/stroke="none"//g' dist/profile-night-rainbow.svg
-          sed -i "0,/fill=[\"'][^\"']*[\"']/s//fill=\"$DRACULA_BG\" stroke=\"$BORDER_COLOR\" stroke-width=\"$BORDER_WIDTH\" rx=\"50\" ry=\"50\"/" dist/profile-night-rainbow.svg
-          sed -i "s/fill=[\"']#e4e2e2[\"']/fill=\"$DRACULA_FG\"/g" dist/profile-night-rainbow.svg
+          if os.path.exists(source_path):
+              with open(source_path, 'r', encoding='utf-8') as f:
+                  svg_data = f.read()
+
+              DRACULA_BG = "#282a36"
+              DRACULA_FG = "#f8f8f2"
+              BORDER_COLOR = "#f8f8f2"
+              BORDER_WIDTH = "5"
+
+              svg_data = svg_data.replace('stroke="none"', '')
+              
+              replacement = f'fill="{DRACULA_BG}" stroke="{BORDER_COLOR}" stroke-width="{BORDER_WIDTH}" rx="50" ry="50"'
+              svg_data = re.sub(r'fill=["\'][^"\']*["\']', replacement, svg_data, count=1)
+
+              svg_data = svg_data.replace('#e4e2e2', DRACULA_FG)
+
+              with open(target_path, 'w', encoding='utf-8') as f:
+                  f.write(svg_data)
+          else:
+              print("Warning: 3D Profile source file not found.")
 
       - name: Generate Random ASCII Art
         shell: python
@@ -61,61 +78,37 @@ jobs:
 
           selected_art = fallback_art
           if not os.path.exists(art_dir):
-              print(f"Warning: Directory '{art_dir}' not found. Using fallback text.")
+              print(f"Warning: Directory '{art_dir}' not found.")
           else:
               files = [f for f in os.listdir(art_dir) if f.endswith('.txt')]
               if not files:
-                  print("Warning: No .txt files found. Using fallback text.")
+                  print("Warning: No .txt files found.")
               else:
                   selected_file = random.choice(files)
                   try:
                       with open(os.path.join(art_dir, selected_file), "r", encoding="utf-8") as f:
                           selected_art = f.read()
                   except Exception as e:
-                      print(f"Error reading file: {e}. Using fallback.")
+                      print(f"Error: {e}")
 
-          selected_art = selected_art.strip("\n")
-          lines = selected_art.split("\n")
+          lines = selected_art.strip("\n").split("\n")
           
           line_height_px = 18 
           padding_y = 60 
-          content_height = len(lines) * line_height_px
-          final_height = max(200, content_height + padding_y)
-
-          max_char_count = 0
-          for line in lines:
-              if len(line) > max_char_count:
-                  max_char_count = len(line)
-          
           char_width_px = 9.2 
-          art_width_px = max_char_count * char_width_px
           
-          svg_width = 600
+          max_chars = max(len(line) for line in lines)
+          art_width_px = max_chars * char_width_px
+          
+          svg_width = max(600, int(art_width_px + 100))
+          final_height = max(200, len(lines) * line_height_px + padding_y)
           start_x = (svg_width - art_width_px) / 2
-          if start_x < 20: start_x = 20
 
-          tspans = ""
-          for line in lines:
-              safe_line = html.escape(line)
-              tspans += f'<tspan x="{start_x}" dy="1.2em">{safe_line}</tspan>'
+          tspans = "".join([f'<tspan x="{start_x}" dy="1.2em">{html.escape(line)}</tspan>' for line in lines])
 
-          border_color = "#f8f8f2"
-          border_width = 2
-          bg_color = "#282a36"
-          
-          rect_x = border_width / 2
-          rect_y = border_width / 2
-          rect_w = svg_width - border_width
-          rect_h = final_height - border_width
-
-          svg_content = f"""<svg fill="none" viewBox="0 0 {svg_width} {final_height}" width="100%" height="{final_height}" xmlns="http://www.w3.org/2000/svg">
-            <rect x="{rect_x}" y="{rect_y}" width="{rect_w}" height="{rect_h}" fill="{bg_color}" rx="15" ry="15" stroke="{border_color}" stroke-width="{border_width}" />
-            <text x="{start_x}" y="30" 
-                  font-family="Courier New, Courier, monospace" 
-                  font-weight="bold" 
-                  font-size="15" 
-                  fill="{border_color}" 
-                  xml:space="preserve">{tspans}</text>
+          svg_content = f"""<svg fill="none" viewBox="0 0 {svg_width} {final_height}" width="{svg_width}" height="{final_height}" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="2" width="{svg_width-4}" height="{final_height-4}" fill="#282a36" rx="15" ry="15" stroke="#f8f8f2" stroke-width="2" />
+            <text x="{start_x}" y="30" font-family="monospace" font-weight="bold" font-size="15" fill="#f8f8f2" xml:space="preserve">{tspans}</text>
           </svg>"""
 
           with open(f"{output_dir}/ascii_art.svg", "w", encoding="utf-8") as f:
@@ -126,31 +119,33 @@ jobs:
 
       - name: Generate Framed Activity Graph
         shell: python
+        env:
+          USER_NAME: ${{ github.repository_owner }}
         run: |
           import requests
           import os
 
-          url = "https://github-readme-activity-graph.vercel.app/graph?username=chaseanchen&bg_color=44475a&color=f8f8f2&line=ff79c6&point=bd93f9&area=true&hide_border=true"
-          output_dir = "dist"
-          file_name = "activity_graph_framed.svg"
+          username = os.getenv("USER_NAME")
+          url = f"https://github-readme-activity-graph.vercel.app/graph?username={username}&bg_color=44475a&color=f8f8f2&line=ff79c6&point=bd93f9&area=true&hide_border=true"
           
-          response = requests.get(url)
-          if response.status_code == 200:
-              original_svg = response.text
-              
-              border_color = "#ffffff"
-              border_width = 3
-              radius = 20
-              
-              modified_svg = original_svg.replace('rx="0"', f'rx="{radius}"').replace('ry="0"', f'ry="{radius}"')
-              
-              border_rect = f'<rect x="2" y="2" width="99.5%" height="98.5%" fill="none" stroke="{border_color}" stroke-width="{border_width}" rx="{radius}" ry="{radius}" />'
-              
-              if "</svg>" in modified_svg:
-                  modified_svg = modified_svg.replace("</svg>", f"{border_rect}</svg>")
+          try:
+              response = requests.get(url)
+              if response.status_code == 200:
+                  svg = response.text
+                  
+                  border_color = "#ffffff"
+                  border_width = "3"
+                  
+                  border_rect = f'<rect x="1" y="1" width="99%" height="98%" fill="none" stroke="{border_color}" stroke-width="{border_width}" rx="20" ry="20" />'
+                  if "</svg>" in svg:
+                      svg = svg.replace("</svg>", f"{border_rect}</svg>")
+                      
+                  svg = svg.replace("<svg ", '<svg style="border-radius:20px;" ')
 
-              with open(f"{output_dir}/{file_name}", "w", encoding="utf-8") as f:
-                  f.write(modified_svg)
+                  with open("dist/activity_graph_framed.svg", "w", encoding="utf-8") as f:
+                      f.write(svg)
+          except Exception as e:
+              print(f"Failed to generate graph: {e}")
 
       - name: Push all assets to output branch
         uses: crazy-max/ghaction-github-pages@v4

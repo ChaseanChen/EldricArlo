@@ -1,67 +1,162 @@
-name: Debug Token Validity
+name: Generate Profile Assets
 
-on: workflow_dispatch
+on:
+  schedule:
+    - cron: "0 */12 * * *"
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
 
 jobs:
-  check-token:
+  build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      
     steps:
-      - name: 1. Check if Secret exists
-        env:
-          TEST_TOKEN: ${{ secrets.METRICS_TOKEN }}
-        run: |
-          if [ -z "$TEST_TOKEN" ]; then
-            echo "❌ 严重错误: 你没有设置名为 METRICS_TOKEN 的 Secret！"
-            echo "请去 Settings -> Secrets and variables -> Actions 添加它。"
-            exit 1
-          else
-            echo "✅ Secret 存在 (检测到已填入内容)"
-          fi
+      - uses: actions/checkout@v4
 
-      - name: 2. Verify Token Permissions (Crucial!)
-        env:
-          GH_TOKEN: ${{ secrets.METRICS_TOKEN }}
-        run: |
-          echo "正在检查 Token 权限..."
-          
-          # 使用 GitHub CLI 检查当前 Token 的权限范围
-          SCOPES=$(gh api user -H "Accept: application/vnd.github+json" --include | grep -i "x-oauth-scopes")
-          
-          echo "=========================================="
-          echo "你的 Token 拥有的权限: $SCOPES"
-          echo "=========================================="
-          
-          # 检查关键权限
-          if [[ "$SCOPES" != *"read:user"* ]]; then
-             echo "❌ 失败: 缺少 'read:user' 权限！"
-             echo "原因: Metrics 插件无法读取你的个人资料（如账户创建时间），导致生成失败。"
-             FAILED=1
-          else
-             echo "✅ 'read:user' 权限正常。"
-          fi
+      - name: Create dist directory
+        run: mkdir -p dist
 
-          if [[ "$SCOPES" != *"repo"* ]]; then
-             echo "❌ 失败: 缺少 'repo' 权限！"
-             echo "原因: Metrics 插件无法读取你的私有贡献。"
-             FAILED=1
-          else
-             echo "✅ 'repo' 权限正常。"
-          fi
+      - name: Generate Snake
+        uses: Platane/snk@v3
+        with:
+          github_user_name: ${{ github.repository_owner }}
+          outputs: |
+            dist/github-contribution-grid-snake.svg
+            dist/github-contribution-grid-snake-dark.svg?palette=github-dark
+            dist/github-contribution-grid-snake.gif?color_snake=orange&color_dots=#bfd6f6,#8dbdff,#64a1f4,#4b91f1,#3c7dd9
 
-          if [ "$FAILED" == "1" ]; then
-            echo "------------------------------------------"
-            echo "💡 解决办法："
-            echo "1. 去 https://github.com/settings/tokens 重新生成 Token。"
-            echo "2. 务必勾选 'repo' 和 'read:user' (在 User 栏目下)。"
-            echo "3. 回到仓库 Settings 更新 METRICS_TOKEN。"
-            exit 1
-          fi
-
-      - name: 3. Test Metrics Plugin (Dry Run)
+      - name: Generate Half-Year Metrics
         uses: lowlighter/metrics@latest
         with:
           token: ${{ secrets.METRICS_TOKEN }}
           user: ChaseanChen
-          dryrun: yes
+          template: classic
+          base: header, activity, community, repositories, metadata
+          config_timezone: Asia/Shanghai
+          plugin_isocalendar: yes
+          plugin_isocalendar_duration: half-year
+          
+          filename: metrics.svg
+          output_action: none
+          
           verify: yes
           debug: yes
+
+      - name: Style and Move Metrics
+        shell: python
+        run: |
+          import os
+          import sys
+          source_file = 'metrics.svg'
+          target_file = 'dist/metrics.svg'
+
+          print(f"Checking existence of: {os.path.abspath(source_file)}")
+
+          if not os.path.exists(source_file):
+              print("❌ 严重错误: metrics.svg 文件不存在！")
+              print("既然 Token 已经确认有效，可能是 GitHub API 暂时超时，或者是 Metrics 插件内部错误。")
+              print("请查看上一步 'Generate Half-Year Metrics' 的日志。")
+              sys.exit(1)
+          
+          print("✅ 找到 metrics.svg，开始处理...")
+
+          try:
+              with open(source_file, 'r', encoding='utf-8') as f:
+                  svg_content = f.read()
+
+              if '<svg ' in svg_content:
+                  svg_content = svg_content.replace('<svg ', '<svg style="border-radius:20px; background-color: #44475a;" ')
+              
+              border_rect = '<rect x="1" y="1" width="99%" height="98%" fill="none" stroke="#ffffff" stroke-width="2" rx="20" ry="20" />'
+
+              if "</svg>" in svg_content and "stroke-width=\"2\" rx=\"20\"" not in svg_content:
+                  svg_content = svg_content.replace("</svg>", f"{border_rect}</svg>")
+
+              with open(target_file, 'w', encoding='utf-8') as f:
+                  f.write(svg_content)
+              
+              print(f"✅ 处理完成！文件已保存到 {target_file}")
+
+          except Exception as e:
+              print(f"❌ 处理 SVG 时出错: {e}")
+              sys.exit(1)
+
+      - name: Generate Random ASCII Art
+        shell: python
+        run: |
+          import random
+          import os
+          import html
+
+          art_dir = "ascii_arts"
+          output_dir = "dist"
+          fallback_art = "Hello\nWorld" 
+          
+          selected_art = fallback_art
+          if os.path.exists(art_dir):
+              files = [f for f in os.listdir(art_dir) if f.endswith('.txt')]
+              if files:
+                  selected_file = random.choice(files)
+                  try:
+                      with open(os.path.join(art_dir, selected_file), "r", encoding="utf-8") as f:
+                          selected_art = f.read()
+                  except:
+                      pass
+          
+          lines = selected_art.strip("\n").split("\n")
+          line_height_px = 18 
+          padding_y = 60 
+          char_width_px = 9.2 
+          max_chars = max(len(line) for line in lines)
+          art_width_px = max_chars * char_width_px
+          svg_width = max(600, int(art_width_px + 100))
+          final_height = max(200, len(lines) * line_height_px + padding_y)
+          start_x = (svg_width - art_width_px) / 2
+          tspans = "".join([f'<tspan x="{start_x}" dy="1.2em">{html.escape(line)}</tspan>' for line in lines])
+
+          svg_content = f"""<svg fill="none" viewBox="0 0 {svg_width} {final_height}" width="{svg_width}" height="{final_height}" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="2" width="{svg_width-4}" height="{final_height-4}" fill="#44475a" rx="20" ry="20" stroke="#ffffff" stroke-width="2" />
+            <text x="{start_x}" y="40" font-family="monospace" font-weight="bold" font-size="15" fill="#f8f8f2" xml:space="preserve">{tspans}</text>
+          </svg>"""
+
+          with open(f"{output_dir}/ascii_art.svg", "w", encoding="utf-8") as f:
+              f.write(svg_content)
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Generate Framed Activity Graph
+        shell: python
+        env:
+          USER_NAME: ${{ github.repository_owner }}
+        run: |
+          import requests
+          import os
+          username = os.getenv("USER_NAME")
+          url = f"https://github-readme-activity-graph.vercel.app/graph?username={username}&bg_color=44475a&color=f8f8f2&line=ff79c6&point=bd93f9&area=true&hide_border=true"
+          try:
+              response = requests.get(url, timeout=10)
+              if response.status_code == 200:
+                  svg = response.text
+                  border_rect = '<rect x="1" y="1" width="99%" height="98%" fill="none" stroke="#ffffff" stroke-width="2" rx="20" ry="20" />'
+                  if "</svg>" in svg:
+                      svg = svg.replace("</svg>", f"{border_rect}</svg>")
+                  svg = svg.replace("<svg ", '<svg style="border-radius:20px;" ')
+                  with open("dist/activity_graph_framed.svg", "w", encoding="utf-8") as f:
+                      f.write(svg)
+          except:
+              pass
+
+      - name: Push all assets to output branch
+        uses: crazy-max/ghaction-github-pages@v4
+        with:
+          target_branch: output
+          build_dir: dist
+          keep_history: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

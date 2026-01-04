@@ -28,6 +28,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           USERNAME: ${{ github.repository_owner }}
+
+      - name: Fix permissions
+        run: |
+          if [ -d "dist" ]; then
+            sudo chown -R $USER:$USER dist
+          else
+            mkdir dist
+          fi
             
       - name: Move 3D files and Apply Theme
         shell: python

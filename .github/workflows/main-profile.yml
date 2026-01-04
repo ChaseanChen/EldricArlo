@@ -23,17 +23,19 @@ jobs:
             dist/github-contribution-grid-snake-dark.svg?palette=github-dark
             dist/github-contribution-grid-snake.gif?color_snake=orange&color_dots=#bfd6f6,#8dbdff,#64a1f4,#4b91f1,#3c7dd9
 
-      - name: Generate 3D Half-Year Contribution Graph
+      # === 新增：基于官方文档配置的 3D 半年日历 ===
+      - name: Generate 3D Half-Year Calendar
         uses: lowlighter/metrics@latest
         with:
+          # 输出文件名，存放在 dist 目录以便后续推送
           filename: dist/profile-3d-half-year.svg
           token: ${{ secrets.GITHUB_TOKEN }}
           base: ""
           plugin_isocalendar: yes
           plugin_isocalendar_duration: half-year
-          config_theme: dracula
           output_action: none
-        
+      # ==========================================
+
       - name: Fix permissions
         run: |
           if [ -d "dist" ]; then
@@ -41,6 +43,8 @@ jobs:
           else
             mkdir dist
           fi
+            
+      # (移除了原本处理旧 3D 组件颜色的 Python 脚本，因为 metrics 自带样式)
 
       - name: Generate Random ASCII Art
         shell: python

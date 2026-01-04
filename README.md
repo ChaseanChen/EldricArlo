@@ -24,20 +24,20 @@
   <img src="https://readme-flame.vercel.app/api?username=ChaseanChen&show_icons=true&bg_color=44475a&title_color=ff79c6&text_color=f8f8f2&icon_color=bd93f9&count_private=true" height="180" alt="stats" />
 </div>
 
-<br/>
-
-<div align="center">
-  <a href="https://github.com/ChaseanChen">
-    <img src="https://raw.githubusercontent.com/ChaseanChen/ChaseanChen/output/activity_graph_framed.svg" alt="My Activity Graph" width="100%" />
-  </a>
-</div>
-
 <div align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/ChaseanChen/ChaseanChen/output/github-contribution-grid-snake-dark.svg">
     <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/ChaseanChen/ChaseanChen/output/github-contribution-grid-snake.svg">
     <img alt="github contribution grid snake animation" src="https://raw.githubusercontent.com/ChaseanChen/ChaseanChen/output/github-contribution-grid-snake.svg">
   </picture>
+</div>
+
+<br/>
+
+<div align="center">
+  <a href="https://github.com/ChaseanChen">
+    <img src="https://raw.githubusercontent.com/ChaseanChen/ChaseanChen/output/activity_graph_framed.svg" alt="My Activity Graph" width="100%" />
+  </a>
 </div>
 
 <h2 align="center">Connect with me</h2>

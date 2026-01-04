@@ -4,6 +4,10 @@ on:
   schedule:
     - cron: "0 */12 * * *"
   workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
 
 jobs:
   build:
@@ -23,52 +27,39 @@ jobs:
             dist/github-contribution-grid-snake-dark.svg?palette=github-dark
             dist/github-contribution-grid-snake.gif?color_snake=orange&color_dots=#bfd6f6,#8dbdff,#64a1f4,#4b91f1,#3c7dd9
 
-      - name: Generate 3D Profile
-        uses: yoshi389111/github-profile-3d-contrib@0.7.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          USERNAME: ${{ github.repository_owner }}
+      - name: Generate Half-Year Metrics
+        uses: lowlighter/metrics@latest
+        with:
+          token: ${{ secrets.METRICS_TOKEN }}
+          user: ChaseanChen
+          template: classic
+          base: header, activity, community, repositories, metadata
+          config_timezone: Asia/Shanghai
+          plugin_isocalendar: yes
+          plugin_isocalendar_duration: half-year
+          filename: metrics.svg
+          output_action: none
 
-      - name: Fix permissions
-        run: |
-          if [ -d "dist" ]; then
-            sudo chown -R $USER:$USER dist
-          else
-            mkdir dist
-          fi
-            
-      - name: Move 3D files and Apply Theme
+      - name: Prepare dist and Fix Metrics
         shell: python
         run: |
           import os
-          import re
-
           if not os.path.exists('dist'):
               os.makedirs('dist')
-
-          source_path = 'profile-3d-contrib/profile-night-rainbow.svg'
-          target_path = 'dist/profile-night-rainbow.svg'
-
-          if os.path.exists(source_path):
-              with open(source_path, 'r', encoding='utf-8') as f:
-                  svg_data = f.read()
-
-              THEME_BG = "#44475a"
-              THEME_FG = "#f8f8f2"
-              BORDER_COLOR = "#ffffff"
-              BORDER_WIDTH = "3"
-
-              svg_data = svg_data.replace('stroke="none"', '')
+          
+          source = 'metrics.svg'
+          target = 'dist/metrics.svg'
+          if os.path.exists(source):
+              with open(source, 'r', encoding='utf-8') as f:
+                  svg = f.read()
               
-              replacement = f'fill="{THEME_BG}" stroke="{BORDER_COLOR}" stroke-width="{BORDER_WIDTH}" rx="20" ry="20"'
-              svg_data = re.sub(r'fill=["\'][^"\']*["\']', replacement, svg_data, count=1)
-
-              svg_data = svg_data.replace('#e4e2e2', THEME_FG)
-
-              with open(target_path, 'w', encoding='utf-8') as f:
-                  f.write(svg_data)
-          else:
-              print("Warning: 3D Profile source file not found.")
+              svg = svg.replace('<svg ', '<svg style="border-radius:20px;" ')
+              border_rect = '<rect x="1" y="1" width="99%" height="98%" fill="none" stroke="#ffffff" stroke-width="2" rx="20" ry="20" />'
+              if "</svg>" in svg:
+                  svg = svg.replace("</svg>", f"{border_rect}</svg>")
+              
+              with open(target, 'w', encoding='utf-8') as f:
+                  f.write(svg)
 
       - name: Generate Random ASCII Art
         shell: python
@@ -85,33 +76,25 @@ jobs:
               os.makedirs(output_dir)
 
           selected_art = fallback_art
-          if not os.path.exists(art_dir):
-              print(f"Warning: Directory '{art_dir}' not found.")
-          else:
+          if os.path.exists(art_dir):
               files = [f for f in os.listdir(art_dir) if f.endswith('.txt')]
-              if not files:
-                  print("Warning: No .txt files found.")
-              else:
+              if files:
                   selected_file = random.choice(files)
                   try:
                       with open(os.path.join(art_dir, selected_file), "r", encoding="utf-8") as f:
                           selected_art = f.read()
-                  except Exception as e:
-                      print(f"Error: {e}")
+                  except:
+                      pass
 
           lines = selected_art.strip("\n").split("\n")
-          
           line_height_px = 18 
           padding_y = 60 
           char_width_px = 9.2 
-          
           max_chars = max(len(line) for line in lines)
           art_width_px = max_chars * char_width_px
-          
           svg_width = max(600, int(art_width_px + 100))
           final_height = max(200, len(lines) * line_height_px + padding_y)
           start_x = (svg_width - art_width_px) / 2
-          
           tspans = "".join([f'<tspan x="{start_x}" dy="1.2em">{html.escape(line)}</tspan>' for line in lines])
 
           svg_content = f"""<svg fill="none" viewBox="0 0 {svg_width} {final_height}" width="{svg_width}" height="{final_height}" xmlns="http://www.w3.org/2000/svg">
@@ -132,28 +115,20 @@ jobs:
         run: |
           import requests
           import os
-
           username = os.getenv("USER_NAME")
           url = f"https://github-readme-activity-graph.vercel.app/graph?username={username}&bg_color=44475a&color=f8f8f2&line=ff79c6&point=bd93f9&area=true&hide_border=true"
-          
           try:
               response = requests.get(url, timeout=10)
               if response.status_code == 200:
                   svg = response.text
-                  
-                  border_color = "#ffffff"
-                  border_width = "2"
-                  
-                  border_rect = f'<rect x="1" y="1" width="99%" height="98%" fill="none" stroke="{border_color}" stroke-width="{border_width}" rx="20" ry="20" />'
+                  border_rect = '<rect x="1" y="1" width="99%" height="98%" fill="none" stroke="#ffffff" stroke-width="2" rx="20" ry="20" />'
                   if "</svg>" in svg:
                       svg = svg.replace("</svg>", f"{border_rect}</svg>")
-                      
                   svg = svg.replace("<svg ", '<svg style="border-radius:20px;" ')
-
                   with open("dist/activity_graph_framed.svg", "w", encoding="utf-8") as f:
                       f.write(svg)
-          except Exception as e:
-              print(f"Failed to generate graph: {e}")
+          except:
+              pass
 
       - name: Push all assets to output branch
         uses: crazy-max/ghaction-github-pages@v4

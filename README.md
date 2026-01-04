@@ -40,11 +40,6 @@
   </picture>
 </div>
 
-<!-- 新的 3D 半年贡献图 -->
-<div align="center">
-  <img src="https://raw.githubusercontent.com/ChaseanChen/ChaseanChen/output/profile-3d-half-year.svg" width="100%" alt="3d stats"/>
-</div>
-
 <h2 align="center">Connect with me</h2>
 
 <p align="center">

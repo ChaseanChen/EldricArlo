@@ -40,42 +40,42 @@ jobs:
           config_timezone: Asia/Shanghai
           plugin_isocalendar: yes
           plugin_isocalendar_duration: half-year
-          filename: metrics.svg
+          filename: dist/metrics.svg
           output_action: none
           debug: yes
+          verify: no
 
-      - name: Process Metrics and Move to dist
+      - name: Fix Metrics Style
         shell: python
         run: |
           import os
           import sys
 
-          source = 'metrics.svg'
           target = 'dist/metrics.svg'
 
-          print(f"Checking for {source}...")
+          print(f"Checking for {target}...")
 
-          if not os.path.exists(source):
-              print(f"Error: {source} was NOT found!")
-              print("Possible reasons:")
-              print("1. The METRICS_TOKEN secret is missing or invalid.")
-              print("2. The metrics action failed silently.")
-              sys.exit(1) # 强制让 Action 失败变红
+          if not os.path.exists(target):
+              print(f"Error: {target} was NOT generated!")
+              print("CRITICAL: This means the 'Generate Half-Year Metrics' step failed.")
+              print("Please check your METRICS_TOKEN permissions (repo, read:org, read:user).")
+              sys.exit(1)
 
           try:
-              with open(source, 'r', encoding='utf-8') as f:
+              with open(target, 'r', encoding='utf-8') as f:
                   svg = f.read()
               
-              svg = svg.replace('<svg ', '<svg style="border-radius:20px;" ')
-              border_rect = '<rect x="1" y="1" width="99%" height="98%" fill="none" stroke="#ffffff" stroke-width="2" rx="20" ry="20" />'
+              if 'style="border-radius:20px;"' not in svg:
+                  svg = svg.replace('<svg ', '<svg style="border-radius:20px;" ')
               
-              if "</svg>" in svg:
+              border_rect = '<rect x="1" y="1" width="99%" height="98%" fill="none" stroke="#ffffff" stroke-width="2" rx="20" ry="20" />'
+              if "</svg>" in svg and "rect" not in svg[-200:]: # 简单防止重复添加
                   svg = svg.replace("</svg>", f"{border_rect}</svg>")
               
               with open(target, 'w', encoding='utf-8') as f:
                   f.write(svg)
               
-              print(f"Success: Processed {source} and saved to {target}")
+              print("Success: Metrics SVG styled successfully.")
 
           except Exception as e:
               print(f"Error processing SVG: {e}")
@@ -93,7 +93,6 @@ jobs:
           fallback_art = "Hello\nWorld" 
           
           selected_art = fallback_art
-
           if os.path.exists(art_dir):
               files = [f for f in os.listdir(art_dir) if f.endswith('.txt')]
               if files:
@@ -147,9 +146,6 @@ jobs:
                       f.write(svg)
           except:
               pass
-
-      - name: List dist contents
-        run: ls -R dist
 
       - name: Push all assets to output branch
         uses: crazy-max/ghaction-github-pages@v4

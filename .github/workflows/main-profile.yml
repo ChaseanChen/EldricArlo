@@ -18,12 +18,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 1. 【关键修复】创建目录并赋予最高权限 (777)
-      # 这能解决 Docker 容器无法写入文件的问题
-      - name: Prepare Output Directory
+      # 1. 赋予当前目录最高权限，防止 Docker 写入失败
+      - name: Fix Directory Permissions
         run: |
           mkdir -p dist
-          sudo chmod -R 777 dist
           sudo chmod -R 777 .
 
       # 2. 生成贪吃蛇
@@ -36,8 +34,8 @@ jobs:
             dist/github-contribution-grid-snake-dark.svg?palette=github-dark
             dist/github-contribution-grid-snake.gif?color_snake=orange&color_dots=#bfd6f6,#8dbdff,#64a1f4,#4b91f1,#3c7dd9
 
-      # 3. 生成 Metrics (核心步骤)
-      # 既然 Token 没问题，我们强制指定输出到 dist/metrics.svg
+      # 3. 生成 Metrics (核心修复)
+      # 策略：生成到根目录，开启 verify 和 debug
       - name: Generate Half-Year Metrics
         uses: lowlighter/metrics@latest
         with:
@@ -49,53 +47,63 @@ jobs:
           plugin_isocalendar: yes
           plugin_isocalendar_duration: half-year
           
-          # 直接写到 dist 目录 (配合上面的 chmod 777)
-          filename: dist/metrics.svg
+          # 关键点：只写文件名，不写路径，减少权限错误
+          filename: metrics.svg
           output_action: none
           
-          # 关闭 verify，因为它有时候会因为 SVG 动画误报错误
-          verify: no
-          # 开启调试
+          # 强制打印调试信息，如果有 API 错误会直接显示
           debug: yes
+          verify: yes
 
-      # 4. 【调试步骤】列出文件
-      # 如果这里列出来 metrics.svg，说明生成成功了
-      - name: Debug - Check Files
+      # 4. 【寻宝模式】地毯式搜索文件
+      # 不管文件生成到哪里了，只要存在，就把它移动到 dist
+      - name: Locate and Move Metrics
         run: |
-          echo "Listing dist directory:"
-          ls -la dist/
+          echo "🔍 正在寻找 metrics.svg ..."
+          
+          # 在当前目录查找文件
+          FOUND_FILE=$(find . -name "metrics.svg" -type f | head -n 1)
+          
+          if [ -z "$FOUND_FILE" ]; then
+            echo "❌ 严重错误：在任何目录下都找不到 metrics.svg！"
+            echo "---------------------------------------------------"
+            echo "这意味着 Generate 步骤虽然显示绿色，但实际上没有输出文件。"
+            echo "请务必查看上一步的日志。"
+            echo "---------------------------------------------------"
+            ls -R # 列出所有文件供调试
+            exit 1
+          else
+            echo "✅ 找到了文件：$FOUND_FILE"
+            echo "正在移动到 dist/metrics.svg ..."
+            mv "$FOUND_FILE" dist/metrics.svg
+          fi
 
-      # 5. Python 处理：给 metrics.svg 加边框
+      # 5. Python 处理：给 dist/metrics.svg 加边框
       - name: Style Metrics
         shell: python
         run: |
           import os
           import sys
 
+          # 此时文件一定在 dist 里
           target_file = 'dist/metrics.svg'
 
-          print(f"Checking existence of: {os.path.abspath(target_file)}")
-
           if not os.path.exists(target_file):
-              print("❌ 严重错误: metrics.svg 依然没有生成！")
-              print("---------------------------------------------------")
-              print("⚠️ 请务必点击上一个步骤 'Generate Half-Year Metrics' 的箭头 >")
-              print("⚠️ 查看里面的日志，寻找红色的报错信息（例如 Puppeteer error, API limits 等）")
-              print("---------------------------------------------------")
+              print(f"❌ 错误: {target_file} 不存在 (逻辑不可能到达这里)")
               sys.exit(1)
           
-          print("✅ 找到 metrics.svg，开始处理...")
+          print("✅ 开始为 SVG 添加样式...")
 
           try:
               with open(target_file, 'r', encoding='utf-8') as f:
                   svg_content = f.read()
 
+              # 1. 注入背景色和圆角
               if '<svg ' in svg_content:
-                  if 'style="' in svg_content:
-                      svg_content = svg_content.replace('<svg ', '<svg style="border-radius:20px; background-color: #44475a; ' + svg_content.split('<svg ')[1].split('style="')[1], 1)
-                  else:
-                      svg_content = svg_content.replace('<svg ', '<svg style="border-radius:20px; background-color: #44475a;" ')
-
+                  # 简单暴力的替换，防止正则匹配失败
+                  svg_content = svg_content.replace('<svg ', '<svg style="border-radius:20px; background-color: #44475a;" ')
+              
+              # 2. 注入白色边框
               border_rect = '<rect x="1" y="1" width="99%" height="98%" fill="none" stroke="#ffffff" stroke-width="2" rx="20" ry="20" />'
               
               if "</svg>" in svg_content and "stroke-width=\"2\" rx=\"20\"" not in svg_content:
@@ -104,13 +112,12 @@ jobs:
               with open(target_file, 'w', encoding='utf-8') as f:
                   f.write(svg_content)
               
-              print(f"✅ 处理完成！样式已应用到 {target_file}")
+              print(f"✅ 样式添加成功！")
 
           except Exception as e:
               print(f"❌ 处理 SVG 时出错: {e}")
               sys.exit(1)
 
-      # 6. 生成 ASCII Art
       - name: Generate Random ASCII Art
         shell: python
         run: |

@@ -14,6 +14,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # 1. 显式创建 dist 目录，防止后续步骤找不到目录
+      - name: Create dist directory
+        run: mkdir -p dist
+
       - name: Generate Snake
         uses: Platane/snk@v3
         with:
@@ -23,26 +27,38 @@ jobs:
             dist/github-contribution-grid-snake-dark.svg?palette=github-dark
             dist/github-contribution-grid-snake.gif?color_snake=orange&color_dots=#bfd6f6,#8dbdff,#64a1f4,#4b91f1,#3c7dd9
 
-      # === 修改点：使用 METRICS_TOKEN ===
+      # 2. 修改：生成文件名去掉 "dist/" 前缀，直接生成在根目录
+      #    这样可以避免 Docker 容器挂载子目录时的权限/路径问题
       - name: Generate 3D Half-Year Calendar
         uses: lowlighter/metrics@latest
         with:
-          filename: dist/profile-3d-half-year.svg
-          # 这里使用了你新创建的 Token，权限更高
+          filename: profile-3d-half-year.svg
           token: ${{ secrets.METRICS_TOKEN }}
           base: ""
           plugin_isocalendar: yes
           plugin_isocalendar_duration: half-year
           output_action: none
-      # ===============================
 
-      - name: Fix permissions
+      # 3. 新增步骤：移动文件、修复权限、并打印文件列表以便调试
+      - name: Move 3D file and Fix permissions
         run: |
+          # 检查根目录下是否有生成的文件
+          if [ -f "profile-3d-half-year.svg" ]; then
+            mv profile-3d-half-year.svg dist/
+            echo "✅ 3D Graph generated and moved successfully."
+          else
+            echo "❌ Error: profile-3d-half-year.svg was not found in root directory!"
+            # 不强制退出，允许其他步骤继续，但会在日志里报错
+          fi
+
+          # 统一修复 dist 目录权限 (Docker 生成的文件通常是 root 权限)
           if [ -d "dist" ]; then
             sudo chown -R $USER:$USER dist
-          else
-            mkdir dist
           fi
+
+          # 调试：列出 dist 目录下的所有文件，请在 Actions 日志中查看这一步的输出
+          echo "📂 Listing files in dist directory:"
+          ls -l dist/
 
       - name: Generate Random ASCII Art
         shell: python
@@ -55,6 +71,7 @@ jobs:
           output_dir = "dist"
           fallback_art = "Hello\nWorld" 
 
+          # dist 目录在上面已经创建，这里直接用
           if not os.path.exists(output_dir):
               os.makedirs(output_dir)
 

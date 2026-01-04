@@ -23,6 +23,17 @@ jobs:
             dist/github-contribution-grid-snake-dark.svg?palette=github-dark
             dist/github-contribution-grid-snake.gif?color_snake=orange&color_dots=#bfd6f6,#8dbdff,#64a1f4,#4b91f1,#3c7dd9
 
+      - name: Generate 3D Half-Year Contribution Graph
+        uses: lowlighter/metrics@latest
+        with:
+          filename: dist/profile-3d-half-year.svg
+          token: ${{ secrets.GITHUB_TOKEN }}
+          base: ""
+          plugin_isocalendar: yes
+          plugin_isocalendar_duration: half-year
+          config_theme: dracula
+          output_action: none
+        
       - name: Fix permissions
         run: |
           if [ -d "dist" ]; then

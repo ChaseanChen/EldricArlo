@@ -40,45 +40,54 @@ jobs:
           config_timezone: Asia/Shanghai
           plugin_isocalendar: yes
           plugin_isocalendar_duration: half-year
-          filename: dist/metrics.svg
+          filename: metrics.svg
           output_action: none
-          debug: yes
           verify: no
+          debug: yes
 
-      - name: Fix Metrics Style
+      - name: Debug - List Files
+        run: |
+          echo "Listing root directory:"
+          ls -la
+          echo "Listing dist directory:"
+          ls -la dist/
+
+      - name: Style and Move Metrics
         shell: python
         run: |
           import os
           import sys
 
-          target = 'dist/metrics.svg'
+          source_file = 'metrics.svg'
+          target_file = 'dist/metrics.svg'
 
-          print(f"Checking for {target}...")
+          print(f"Looking for source file at: {os.path.abspath(source_file)}")
 
-          if not os.path.exists(target):
-              print(f"Error: {target} was NOT generated!")
-              print("CRITICAL: This means the 'Generate Half-Year Metrics' step failed.")
-              print("Please check your METRICS_TOKEN permissions (repo, read:org, read:user).")
+          if not os.path.exists(source_file):
+              print("❌ ERROR: metrics.svg not found in root directory!")
+              print("Did the 'Generate Half-Year Metrics' step fail? Check the logs above.")
               sys.exit(1)
+          else:
+              print("✅ Found metrics.svg! Processing...")
 
           try:
-              with open(target, 'r', encoding='utf-8') as f:
-                  svg = f.read()
-              
-              if 'style="border-radius:20px;"' not in svg:
-                  svg = svg.replace('<svg ', '<svg style="border-radius:20px;" ')
+              with open(source_file, 'r', encoding='utf-8') as f:
+                  svg_content = f.read()
+
+              if '<svg ' in svg_content:
+                  svg_content = svg_content.replace('<svg ', '<svg style="border-radius:20px; background-color: #44475a;" ')
               
               border_rect = '<rect x="1" y="1" width="99%" height="98%" fill="none" stroke="#ffffff" stroke-width="2" rx="20" ry="20" />'
-              if "</svg>" in svg and "rect" not in svg[-200:]: # 简单防止重复添加
-                  svg = svg.replace("</svg>", f"{border_rect}</svg>")
+              if "</svg>" in svg_content:
+                  svg_content = svg_content.replace("</svg>", f"{border_rect}</svg>")
+
+              with open(target_file, 'w', encoding='utf-8') as f:
+                  f.write(svg_content)
               
-              with open(target, 'w', encoding='utf-8') as f:
-                  f.write(svg)
-              
-              print("Success: Metrics SVG styled successfully.")
+              print(f"✅ Success! Styled SVG saved to {target_file}")
 
           except Exception as e:
-              print(f"Error processing SVG: {e}")
+              print(f"❌ Error during processing: {e}")
               sys.exit(1)
 
       - name: Generate Random ASCII Art

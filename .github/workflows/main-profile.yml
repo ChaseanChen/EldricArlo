@@ -100,15 +100,9 @@ jobs:
           max_chars = max(len(line) for line in lines)
           art_width_px = max_chars * char_width_px
           
-          svg_width = max(600, int(art_width_px + 100))
-          final_height = max(200, len(lines) * line_height_px + padding_y)
-          start_x = (svg_width - art_width_px) / 2
-
-          tspans = "".join([f'<tspan x="{start_x}" dy="1.2em">{html.escape(line)}</tspan>' for line in lines])
-
           svg_content = f"""<svg fill="none" viewBox="0 0 {svg_width} {final_height}" width="{svg_width}" height="{final_height}" xmlns="http://www.w3.org/2000/svg">
-            <rect x="2" y="2" width="{svg_width-4}" height="{final_height-4}" fill="#282a36" rx="15" ry="15" stroke="#f8f8f2" stroke-width="2" />
-            <text x="{start_x}" y="30" font-family="monospace" font-weight="bold" font-size="15" fill="#f8f8f2" xml:space="preserve">{tspans}</text>
+          <rect x="2" y="2" width="{svg_width-4}" height="{final_height-4}" fill="#44475a" rx="20" ry="20" stroke="#ffffff" stroke-width="2" />
+          <text x="{start_x}" y="40" font-family="monospace" font-weight="bold" font-size="15" fill="#f8f8f2" xml:space="preserve">{tspans}</text>
           </svg>"""
 
           with open(f"{output_dir}/ascii_art.svg", "w", encoding="utf-8") as f:

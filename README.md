@@ -23,7 +23,7 @@
 <div align="center">
   <img src="https://nirzak-streak-stats.vercel.app/?user=chaseanchen&background=44475a&ring=bd93f9&fire=ff79c6&currStreakLabel=ff79c6&currStreakNum=f8f8f2&sideLabels=f8f8f2&sideNums=f8f8f2&dates=f8f8f2&border=bd93f9&hide_border=false" alt="streak" height="180" />
   &nbsp;
-  <img src="https://readme-flame.vercel.app/api?username=ChaseanChen&show_icons=true&bg_color=44475a&title_color=ff79c6&text_color=f8f8f2&icon_color=bd93f9&count_private=true" alt="stats" height="180" />
+  <img src="https://github-readme-stats-alpha-seven-49.vercel.app/api?username=ChaseanChen&show_icons=true&bg_color=44475a&title_color=ff79c6&text_color=f8f8f2&icon_color=bd93f9&count_private=true" alt="stats" height="180" />
 </div>
 
 <div align="center">

@@ -3,7 +3,8 @@
 </div>
 
 <div align="center">
-  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=20&pause=1000&color=36BCF7&background=00000000&width=600&lines=Strive+to+make+your+spirit+bright%2C;Be+the+star+in+your+own+night." alt="My Developer Journey" />
+  <!-- 建议：添加 width/height 属性以减少页面加载时的布局跳动 -->
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=20&pause=1000&color=36BCF7&background=00000000&width=600&lines=Strive+to+make+your+spirit+bright%2C;Be+the+star+in+your+own+night." alt="My Developer Journey" width="600" />
 </div>
 
 <div align="center">
@@ -11,7 +12,8 @@
 </div>
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/ChaseanChen/ChaseanChen/output/ascii_art.svg" alt="Random ASCII Art" width="100%" />
+  <!-- 优化：使用 style 控制最大宽度，防止字符过少时 SVG 被拉伸得太难看 -->
+  <img src="https://raw.githubusercontent.com/ChaseanChen/ChaseanChen/output/ascii_art.svg" alt="Random ASCII Art" style="width: 100%; max-width: 800px; height: auto;" />
 </div>
 
 <div align="center">
@@ -41,7 +43,8 @@
 
 <div align="center">
   <a href="https://github.com/ChaseanChen">
-    <img src="https://raw.githubusercontent.com/ChaseanChen/ChaseanChen/output/activity_graph_framed.svg" alt="My Activity Graph" width="100%" />
+    <!-- 优化：添加 style 确保响应式 -->
+    <img src="https://raw.githubusercontent.com/ChaseanChen/ChaseanChen/output/activity_graph_framed.svg" alt="My Activity Graph" style="width: 100%; height: auto;" />
   </a>
 </div>
 

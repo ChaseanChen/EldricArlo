@@ -40,44 +40,50 @@ jobs:
 
           art_dir = "ascii_arts"
           output_dir = "dist"
+          
           fallback_art = "Hello\nWorld" 
 
           if not os.path.exists(output_dir):
               os.makedirs(output_dir)
 
           selected_art = fallback_art
-          if not os.path.exists(art_dir):
-              print(f"Warning: Directory '{art_dir}' not found.")
-          else:
+          
+          if os.path.exists(art_dir):
               files = [f for f in os.listdir(art_dir) if f.endswith('.txt')]
-              if not files:
-                  print("Warning: No .txt files found.")
-              else:
+              if files:
                   selected_file = random.choice(files)
                   try:
                       with open(os.path.join(art_dir, selected_file), "r", encoding="utf-8") as f:
-                          selected_art = f.read()
+                          content = f.read()
+                          if content.strip():
+                              selected_art = content
                   except Exception as e:
-                      print(f"Error: {e}")
+                      print(f"Error reading ascii file: {e}")
+          else:
+              print(f"Warning: Directory '{art_dir}' not found. Using fallback.")
 
           lines = selected_art.strip("\n").split("\n")
           
+          font_family = "Consolas, Monaco, Andale Mono, Ubuntu Mono, monospace"
           line_height_px = 18 
           padding_y = 60 
-          char_width_px = 9.2 
+          char_width_px = 9.6
           
-          max_chars = max(len(line) for line in lines)
+          max_chars = max(len(line) for line in lines) if lines else 0
           art_width_px = max_chars * char_width_px
           
           svg_width = max(600, int(art_width_px + 100))
           final_height = max(200, len(lines) * line_height_px + padding_y)
           start_x = (svg_width - art_width_px) / 2
           
-          tspans = "".join([f'<tspan x="{start_x}" dy="1.2em">{html.escape(line)}</tspan>' for line in lines])
+          tspans = ""
+          for line in lines:
+              safe_line = html.escape(line).replace(" ", "&#160;") 
+              tspans += f'<tspan x="{start_x}" dy="1.2em">{safe_line}</tspan>'
 
           svg_content = f"""<svg fill="none" viewBox="0 0 {svg_width} {final_height}" width="{svg_width}" height="{final_height}" xmlns="http://www.w3.org/2000/svg">
             <rect x="2" y="2" width="{svg_width-4}" height="{final_height-4}" fill="#44475a" rx="20" ry="20" stroke="#ffffff" stroke-width="2" />
-            <text x="{start_x}" y="40" font-family="monospace" font-weight="bold" font-size="15" fill="#f8f8f2" xml:space="preserve">{tspans}</text>
+            <text x="{start_x}" y="20" font-family="{font_family}" font-weight="bold" font-size="15" fill="#f8f8f2" xml:space="preserve">{tspans}</text>
           </svg>"""
 
           with open(f"{output_dir}/ascii_art.svg", "w", encoding="utf-8") as f:
@@ -93,28 +99,56 @@ jobs:
         run: |
           import requests
           import os
+          import re
+          import time
 
           username = os.getenv("USER_NAME")
           url = f"https://github-readme-activity-graph.vercel.app/graph?username={username}&bg_color=44475a&color=f8f8f2&line=ff79c6&point=bd93f9&area=true&hide_border=true"
           
-          try:
-              response = requests.get(url, timeout=10)
-              if response.status_code == 200:
-                  svg = response.text
-                  
+          output_path = "dist/activity_graph_framed.svg"
+          
+          content = None
+          for i in range(3):
+              try:
+                  print(f"Fetching graph (attempt {i+1})...")
+                  response = requests.get(url, timeout=15)
+                  if response.status_code == 200:
+                      content = response.text
+                      break
+              except Exception as e:
+                  print(f"Attempt {i+1} failed: {e}")
+                  time.sleep(2)
+
+          if content:
+              print("Graph fetched successfully. Processing SVG...")
+              try:
                   border_color = "#ffffff"
                   border_width = "2"
                   
-                  border_rect = f'<rect x="1" y="1" width="99%" height="98%" fill="none" stroke="{border_color}" stroke-width="{border_width}" rx="20" ry="20" />'
-                  if "</svg>" in svg:
-                      svg = svg.replace("</svg>", f"{border_rect}</svg>")
-                      
-                  svg = svg.replace("<svg ", '<svg style="border-radius:20px;" ')
-
-                  with open("dist/activity_graph_framed.svg", "w", encoding="utf-8") as f:
-                      f.write(svg)
-          except Exception as e:
-              print(f"Failed to generate graph: {e}")
+                  border_rect = f'<rect x="1" y="1" width="99%" height="99%" fill="none" stroke="{border_color}" stroke-width="{border_width}" rx="20" ry="20" />'
+                  content = re.sub(r'(</svg>\s*$)', f'{border_rect}\\1', content)
+                  
+                  if 'style="' in content:
+                      content = content.replace('style="', 'style="border-radius:20px; ')
+                  else:
+                      content = content.replace('<svg ', '<svg style="border-radius:20px;" ')
+                  
+                  with open(output_path, "w", encoding="utf-8") as f:
+                      f.write(content)
+              except Exception as e:
+                  print(f"Error processing SVG: {e}")
+                  content = None
+          
+          if not content:
+              print("Warning: Failed to generate graph. Creating fallback image.")
+              fallback_svg = f"""<svg xmlns="http://www.w3.org/2000/svg" width="800" height="300" viewBox="0 0 800 300">
+                <rect width="800" height="300" fill="#44475a" rx="20" ry="20" stroke="#ff5555" stroke-width="2"/>
+                <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="20" fill="#f8f8f2">
+                  Activity Graph Unavailable
+                </text>
+              </svg>"""
+              with open(output_path, "w", encoding="utf-8") as f:
+                  f.write(fallback_svg)
 
       - name: Push all assets to output branch
         uses: crazy-max/ghaction-github-pages@v4

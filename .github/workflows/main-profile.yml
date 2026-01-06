@@ -89,10 +89,10 @@ jobs:
         env:
           USER_NAME: ${{ github.repository_owner }}
         run: |
-          import requests, os, time
+          import requests, os, time, re
 
           username = os.getenv("USER_NAME")
-          url = f"https://github-readme-activity-graph.vercel.app/graph?username={username}&bg_color=44475a&color=f8f8f2&line=ff79c6&point=bd93f9&area=true&hide_border=true"
+          url = f"https://github-readme-activity-graph.vercel.app/graph?username={username}&bg_color=00000000&color=f8f8f2&line=ff79c6&point=bd93f9&area=true&hide_border=true"
           output_path = "dist/activity_graph_framed.svg"
           
           content = None
@@ -107,11 +107,23 @@ jobs:
 
           if content and '<svg' in content and '</svg>' in content:
               try:
-                  border_style = 'style="border: 2px solid #bd93f9; border-radius: 10px; background: #44475a;"'
-                  content = content.replace('<svg', f'<svg {border_style} ', 1)
+                  w_match = re.search(r'width="(\d+)"', content)
+                  h_match = re.search(r'height="(\d+)"', content)
                   
-                  with open(output_path, "w", encoding="utf-8") as f:
-                      f.write(content)
+                  if w_match and h_match:
+                      width = int(w_match.group(1))
+                      height = int(h_match.group(1))
+
+                      bg_rect = f'<rect x="2" y="2" width="{width-4}" height="{height-4}" rx="10" ry="10" fill="#44475a" stroke="#bd93f9" stroke-width="2" />'
+
+                      svg_tag_end = content.find('>') + 1
+                      final_content = content[:svg_tag_end] + bg_rect + content[svg_tag_end:]
+                      
+                      with open(output_path, "w", encoding="utf-8") as f:
+                          f.write(final_content)
+                      print("Graph generated with vector background successfully.")
+                  else:
+                      print("Could not parse SVG dimensions.")
               except Exception as e:
                   print(f"Error processing SVG: {e}")
           else:

@@ -35,7 +35,7 @@
 
 <div align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/ChaseanChen/ChaseanChen/output/github-contribution-grid-snake.svg">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/ChaseanChen/ChaseanChen/output/github-contribution-grid-snake-dark.svg">
     <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/ChaseanChen/ChaseanChen/output/github-contribution-grid-snake.svg">
     <img alt="github contribution grid snake animation" src="https://raw.githubusercontent.com/ChaseanChen/ChaseanChen/output/github-contribution-grid-snake.svg" width="100%">
   </picture>
@@ -55,6 +55,7 @@
   <a href="https://github.com/ChaseanChen" target="_blank">
     <img src="https://img.shields.io/badge/GitHub-44475a?style=for-the-badge&logo=github&logoColor=white" alt="GitHub"/>
   </a>
+  &nbsp;&nbsp;
   <a href="mailto:Oracipher@duck.com" target="_blank">
     <img src="https://img.shields.io/badge/DuckGo-bd93f9?style=for-the-badge&logo=duckduckgo&logoColor=white" alt="Duck"/>
   </a>

@@ -50,8 +50,8 @@ jobs:
                       with open(os.path.join(art_dir, random.choice(files)), "r", encoding="utf-8") as f:
                           content = f.read()
                           if content.strip(): selected_art = content
-                  except Exception as e:
-                      print(f"Error reading ascii file: {e}")
+                  except Exception:
+                      pass
 
           lines = selected_art.strip("\n").split("\n")
           
@@ -78,7 +78,6 @@ jobs:
             <text x="{start_x}" y="20" font-family="{font_family}" font-weight="bold" font-size="15" fill="#f8f8f2" xml:space="preserve">{tspans}</text>
           </svg>"""
 
-          print(f"Writing SVG to {output_dir}/ascii_art.svg")
           with open(f"{output_dir}/ascii_art.svg", "w", encoding="utf-8") as f:
               f.write(svg_content)
 
@@ -99,28 +98,24 @@ jobs:
           content = None
           for i in range(3):
               try:
-                  print(f"Fetching graph (attempt {i+1})...")
                   r = requests.get(url, timeout=20)
                   if r.status_code == 200:
                       content = r.text
                       break
-              except Exception as e:
-                  print(f"Attempt failed: {e}")
+              except Exception:
                   time.sleep(2)
 
-          if content:
+          if content and '<svg' in content and '</svg>' in content:
               try:
                   border_style = 'style="border: 2px solid #bd93f9; border-radius: 10px; background: #44475a;"'
-                  if '<svg' in content:
-                      content = content.replace('<svg', f'<svg {border_style} ', 1)
+                  content = content.replace('<svg', f'<svg {border_style} ', 1)
                   
                   with open(output_path, "w", encoding="utf-8") as f:
                       f.write(content)
-                  print("Graph generated successfully.")
               except Exception as e:
                   print(f"Error processing SVG: {e}")
           else:
-              print("Failed to fetch graph.")
+              print("Failed to fetch valid graph.")
 
       - name: Push all assets to output branch
         uses: crazy-max/ghaction-github-pages@v4

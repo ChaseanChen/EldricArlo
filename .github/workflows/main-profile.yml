@@ -14,6 +14,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Create Dist Directory
+        run: mkdir -p dist
+
       - name: Generate Snake
         uses: Platane/snk@v3
         with:
@@ -22,8 +25,10 @@ jobs:
             dist/github-contribution-grid-snake.svg?color_snake=#ff79c6&color_dots=#44475a,#6272a4,#bd93f9,#ff79c6
             dist/github-contribution-grid-snake-dark.svg?palette=github-dark&color_snake=#ff79c6&color_dots=#44475a,#6272a4,#bd93f9,#ff79c6
 
-      - name: Create Dist Directory
-        run: mkdir -p dist
+      - name: Fix permissions
+        run: |
+          sudo chown -R $USER:$USER dist
+          sudo chmod -R 755 dist
 
       - name: Generate Random ASCII Art
         shell: python
@@ -45,7 +50,7 @@ jobs:
                           content = f.read()
                           if content.strip(): selected_art = content
                   except Exception as e:
-                      print(f"Error: {e}")
+                      print(f"Error reading ascii file: {e}")
 
           lines = selected_art.strip("\n").split("\n")
           
@@ -58,7 +63,7 @@ jobs:
           max_chars = max(len(line) for line in lines) if lines else 0
           svg_width = max(600, int(max_chars * char_width + 60))
           svg_height = max(150, len(lines) * line_height + 60)
-          
+
           start_y = (svg_height - (len(lines) * line_height)) / 2 + 10
 
           tspans = ""
@@ -72,8 +77,10 @@ jobs:
             <text font-family="{font_family}" font-weight="bold" font-size="15" fill="{text_color}">{tspans}</text>
           </svg>"""
 
+          print(f"Writing to {output_dir}/ascii_art.svg...")
           with open(f"{output_dir}/ascii_art.svg", "w", encoding="utf-8") as f:
               f.write(svg_content)
+          print("Success!")
 
       - name: Install dependencies
         run: pip install requests
@@ -92,11 +99,13 @@ jobs:
           content = None
           for i in range(3):
               try:
+                  print(f"Fetching graph (attempt {i+1})...")
                   r = requests.get(url, timeout=20)
                   if r.status_code == 200:
                       content = r.text
                       break
-              except:
+              except Exception as e:
+                  print(f"Attempt failed: {e}")
                   time.sleep(2)
 
           if content:
@@ -110,6 +119,8 @@ jobs:
                   print("Graph generated successfully.")
               except Exception as e:
                   print(f"Error processing SVG: {e}")
+          else:
+              print("Failed to fetch graph.")
 
       - name: Push all assets to output branch
         uses: crazy-max/ghaction-github-pages@v4

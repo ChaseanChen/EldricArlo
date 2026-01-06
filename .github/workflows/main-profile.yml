@@ -22,8 +22,8 @@ jobs:
         with:
           github_user_name: ${{ github.repository_owner }}
           outputs: |
-            dist/github-contribution-grid-snake.svg?color_snake=#ff79c6&color_dots=#44475a,#6272a4,#bd93f9,#ff79c6
-            dist/github-contribution-grid-snake-dark.svg?palette=github-dark&color_snake=#ff79c6&color_dots=#44475a,#6272a4,#bd93f9,#ff79c6
+            dist/github-contribution-grid-snake.svg?color_snake=#ff79c6&color_dots=#44475a,#6272a4,#bd93f9,#ff79c6,#ffffff
+            dist/github-contribution-grid-snake-dark.svg?palette=github-dark&color_snake=#ff79c6&color_dots=#44475a,#6272a4,#bd93f9,#ff79c6,#ffffff
 
       - name: Fix permissions
         run: |
@@ -54,27 +54,33 @@ jobs:
 
           lines = selected_art.strip("\n").split("\n")
           
-          font_family = "Consolas, Monaco, monospace"
+          font_family = "Menlo, Consolas, Monaco, monospace"
           line_height = 18
-          char_width = 9.6
+          char_width = 9.6 
           bg_color = "#44475a"
-          text_color = "#f8f8f2" # Dracula White
+          text_color = "#f8f8f2"
           
           max_chars = max(len(line) for line in lines) if lines else 0
-          svg_width = max(600, int(max_chars * char_width + 60))
+          svg_width = max(600, int(max_chars * char_width + 80)) # 增加左右padding
           svg_height = max(150, len(lines) * line_height + 60)
-
-          start_y = (svg_height - (len(lines) * line_height)) / 2 + 10
+          
+          content_width = max_chars * char_width
+          start_x = (svg_width - content_width) / 2
+          if start_x < 20: start_x = 20
+          
+          start_y = (svg_height - (len(lines) * line_height)) / 2 + 14
 
           tspans = ""
           for i, line in enumerate(lines):
+
               safe_line = html.escape(line).replace(" ", "&#160;")
               y_pos = start_y + (i * line_height)
-              tspans += f'<tspan x="50%" text-anchor="middle" y="{y_pos}">{safe_line}</tspan>'
+              # 关键修复：移除 text-anchor="middle"，使用统一的 x 坐标
+              tspans += f'<tspan x="{start_x}" dy="0">{safe_line}</tspan>\n'
 
           svg_content = f"""<svg fill="none" viewBox="0 0 {svg_width} {svg_height}" width="{svg_width}" height="{svg_height}" xmlns="http://www.w3.org/2000/svg">
             <rect width="100%" height="100%" fill="{bg_color}" rx="10" ry="10" />
-            <text font-family="{font_family}" font-weight="bold" font-size="15" fill="{text_color}">{tspans}</text>
+            <text font-family="{font_family}" font-weight="bold" font-size="15" fill="{text_color}" y="{start_y}" xml:space="preserve">{tspans}</text>
           </svg>"""
 
           print(f"Writing to {output_dir}/ascii_art.svg...")

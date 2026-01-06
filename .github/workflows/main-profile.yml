@@ -39,7 +39,8 @@ jobs:
           output_dir = "dist"
           fallback_art = "CODE\nLIFE" 
 
-          os.makedirs(output_dir, exist_ok=True)
+          if not os.path.exists(output_dir):
+              os.makedirs(output_dir)
 
           selected_art = fallback_art
           if os.path.exists(art_dir):
@@ -54,39 +55,32 @@ jobs:
 
           lines = selected_art.strip("\n").split("\n")
           
-          font_family = "Menlo, Consolas, Monaco, monospace"
-          line_height = 18
-          char_width = 9.6 
-          bg_color = "#44475a"
-          text_color = "#f8f8f2"
+          font_family = "Consolas, Monaco, Andale Mono, Ubuntu Mono, monospace"
+          line_height_px = 18 
+          padding_y = 60 
+          char_width_px = 9.6
           
           max_chars = max(len(line) for line in lines) if lines else 0
-          svg_width = max(600, int(max_chars * char_width + 80)) # 增加左右padding
-          svg_height = max(150, len(lines) * line_height + 60)
+          art_width_px = max_chars * char_width_px
           
-          content_width = max_chars * char_width
-          start_x = (svg_width - content_width) / 2
-          if start_x < 20: start_x = 20
+          svg_width = max(600, int(art_width_px + 100))
+          final_height = max(200, len(lines) * line_height_px + padding_y)
           
-          start_y = (svg_height - (len(lines) * line_height)) / 2 + 14
-
+          start_x = (svg_width - art_width_px) / 2
+          
           tspans = ""
-          for i, line in enumerate(lines):
+          for line in lines:
+              safe_line = html.escape(line).replace(" ", "&#160;") 
+              tspans += f'<tspan x="{start_x}" dy="1.2em">{safe_line}</tspan>'
 
-              safe_line = html.escape(line).replace(" ", "&#160;")
-              y_pos = start_y + (i * line_height)
-              # 关键修复：移除 text-anchor="middle"，使用统一的 x 坐标
-              tspans += f'<tspan x="{start_x}" dy="0">{safe_line}</tspan>\n'
-
-          svg_content = f"""<svg fill="none" viewBox="0 0 {svg_width} {svg_height}" width="{svg_width}" height="{svg_height}" xmlns="http://www.w3.org/2000/svg">
-            <rect width="100%" height="100%" fill="{bg_color}" rx="10" ry="10" />
-            <text font-family="{font_family}" font-weight="bold" font-size="15" fill="{text_color}" y="{start_y}" xml:space="preserve">{tspans}</text>
+          svg_content = f"""<svg fill="none" viewBox="0 0 {svg_width} {final_height}" width="{svg_width}" height="{final_height}" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="2" width="{svg_width-4}" height="{final_height-4}" fill="#44475a" rx="20" ry="20" stroke="#ff79c6" stroke-width="2" />
+            <text x="{start_x}" y="20" font-family="{font_family}" font-weight="bold" font-size="15" fill="#f8f8f2" xml:space="preserve">{tspans}</text>
           </svg>"""
 
-          print(f"Writing to {output_dir}/ascii_art.svg...")
+          print(f"Writing SVG to {output_dir}/ascii_art.svg")
           with open(f"{output_dir}/ascii_art.svg", "w", encoding="utf-8") as f:
               f.write(svg_content)
-          print("Success!")
 
       - name: Install dependencies
         run: pip install requests

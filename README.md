@@ -31,6 +31,8 @@
   <img src="https://nirzak-streak-stats.vercel.app/?user=chaseanchen&background=44475a&ring=bd93f9&fire=ff79c6&currStreakLabel=ff79c6&currStreakNum=f8f8f2&sideLabels=f8f8f2&sideNums=f8f8f2&dates=f8f8f2&hide_border=true" height="165" alt="streak" />
 </div>
 
+<img src="https://nirzak-streak-stats.vercel.app/?user=chaseanchen&background=44475a&ring=bd93f9&fire=ff79c6&currStreakLabel=ff79c6&currStreakNum=f8f8f2&sideLabels=f8f8f2&sideNums=f8f8f2&dates=f8f8f2&border=bd93f9&hide_border=false" alt="streak" height="180" />
+
 <br/>
 
 <div align="center">

@@ -15,7 +15,7 @@
 <br/>
 
 <div align="center">
-  <img src="https://skillicons.dev/icons?i=docker,c,html,css,js,python,mastodon,md&perline=8&theme=dark" />
+  <img src="https://skillicons.dev/icons?i=docker,c,html,css,js,python,mastodon,blender&perline=8&theme=dark" />
   <br/>
   <img src="https://skillicons.dev/icons?i=git,github,vscode,obsidian,discord,twitter,instagram,gmail&perline=8&theme=dark" />
 </div>

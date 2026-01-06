@@ -19,71 +19,57 @@ jobs:
         with:
           github_user_name: ${{ github.repository_owner }}
           outputs: |
-            dist/github-contribution-grid-snake.svg
-            dist/github-contribution-grid-snake-dark.svg?palette=github-dark
-            dist/github-contribution-grid-snake.gif?color_snake=orange&color_dots=#bfd6f6,#8dbdff,#64a1f4,#4b91f1,#3c7dd9
+            dist/github-contribution-grid-snake.svg?color_snake=#ff79c6&color_dots=#44475a,#6272a4,#bd93f9,#ff79c6
+            dist/github-contribution-grid-snake-dark.svg?palette=github-dark&color_snake=#ff79c6&color_dots=#44475a,#6272a4,#bd93f9,#ff79c6
 
-      - name: Fix permissions
-        run: |
-          if [ -d "dist" ]; then
-            sudo chown -R $USER:$USER dist
-          else
-            mkdir dist
-          fi
+      - name: Create Dist Directory
+        run: mkdir -p dist
 
       - name: Generate Random ASCII Art
         shell: python
         run: |
-          import random
-          import os
-          import html
+          import random, os, html
 
           art_dir = "ascii_arts"
           output_dir = "dist"
-          
-          fallback_art = "Hello\nWorld" 
+          fallback_art = "CODE\nLIFE" 
 
-          if not os.path.exists(output_dir):
-              os.makedirs(output_dir)
+          os.makedirs(output_dir, exist_ok=True)
 
           selected_art = fallback_art
-          
           if os.path.exists(art_dir):
               files = [f for f in os.listdir(art_dir) if f.endswith('.txt')]
               if files:
-                  selected_file = random.choice(files)
                   try:
-                      with open(os.path.join(art_dir, selected_file), "r", encoding="utf-8") as f:
+                      with open(os.path.join(art_dir, random.choice(files)), "r", encoding="utf-8") as f:
                           content = f.read()
-                          if content.strip():
-                              selected_art = content
+                          if content.strip(): selected_art = content
                   except Exception as e:
-                      print(f"Error reading ascii file: {e}")
-          else:
-              print(f"Warning: Directory '{art_dir}' not found. Using fallback.")
+                      print(f"Error: {e}")
 
           lines = selected_art.strip("\n").split("\n")
           
-          font_family = "Consolas, Monaco, Andale Mono, Ubuntu Mono, monospace"
-          line_height_px = 18 
-          padding_y = 60 
-          char_width_px = 9.6
+          font_family = "Consolas, Monaco, monospace"
+          line_height = 18
+          char_width = 9.6
+          bg_color = "#44475a"
+          text_color = "#f8f8f2" # Dracula White
           
           max_chars = max(len(line) for line in lines) if lines else 0
-          art_width_px = max_chars * char_width_px
+          svg_width = max(600, int(max_chars * char_width + 60))
+          svg_height = max(150, len(lines) * line_height + 60)
           
-          svg_width = max(600, int(art_width_px + 100))
-          final_height = max(200, len(lines) * line_height_px + padding_y)
-          start_x = (svg_width - art_width_px) / 2
-          
-          tspans = ""
-          for line in lines:
-              safe_line = html.escape(line).replace(" ", "&#160;") 
-              tspans += f'<tspan x="{start_x}" dy="1.2em">{safe_line}</tspan>'
+          start_y = (svg_height - (len(lines) * line_height)) / 2 + 10
 
-          svg_content = f"""<svg fill="none" viewBox="0 0 {svg_width} {final_height}" width="{svg_width}" height="{final_height}" xmlns="http://www.w3.org/2000/svg">
-            <rect x="2" y="2" width="{svg_width-4}" height="{final_height-4}" fill="#44475a" rx="20" ry="20" stroke="#ffffff" stroke-width="2" />
-            <text x="{start_x}" y="20" font-family="{font_family}" font-weight="bold" font-size="15" fill="#f8f8f2" xml:space="preserve">{tspans}</text>
+          tspans = ""
+          for i, line in enumerate(lines):
+              safe_line = html.escape(line).replace(" ", "&#160;")
+              y_pos = start_y + (i * line_height)
+              tspans += f'<tspan x="50%" text-anchor="middle" y="{y_pos}">{safe_line}</tspan>'
+
+          svg_content = f"""<svg fill="none" viewBox="0 0 {svg_width} {svg_height}" width="{svg_width}" height="{svg_height}" xmlns="http://www.w3.org/2000/svg">
+            <rect width="100%" height="100%" fill="{bg_color}" rx="10" ry="10" />
+            <text font-family="{font_family}" font-weight="bold" font-size="15" fill="{text_color}">{tspans}</text>
           </svg>"""
 
           with open(f"{output_dir}/ascii_art.svg", "w", encoding="utf-8") as f:
@@ -97,58 +83,33 @@ jobs:
         env:
           USER_NAME: ${{ github.repository_owner }}
         run: |
-          import requests
-          import os
-          import re
-          import time
+          import requests, os, time
 
           username = os.getenv("USER_NAME")
           url = f"https://github-readme-activity-graph.vercel.app/graph?username={username}&bg_color=44475a&color=f8f8f2&line=ff79c6&point=bd93f9&area=true&hide_border=true"
-          
           output_path = "dist/activity_graph_framed.svg"
           
           content = None
           for i in range(3):
               try:
-                  print(f"Fetching graph (attempt {i+1})...")
-                  response = requests.get(url, timeout=15)
-                  if response.status_code == 200:
-                      content = response.text
+                  r = requests.get(url, timeout=20)
+                  if r.status_code == 200:
+                      content = r.text
                       break
-              except Exception as e:
-                  print(f"Attempt {i+1} failed: {e}")
+              except:
                   time.sleep(2)
 
           if content:
-              print("Graph fetched successfully. Processing SVG...")
               try:
-                  border_color = "#ffffff"
-                  border_width = "2"
-                  
-                  border_rect = f'<rect x="1" y="1" width="99%" height="99%" fill="none" stroke="{border_color}" stroke-width="{border_width}" rx="20" ry="20" />'
-                  content = re.sub(r'(</svg>\s*$)', f'{border_rect}\\1', content)
-                  
-                  if 'style="' in content:
-                      content = content.replace('style="', 'style="border-radius:20px; ')
-                  else:
-                      content = content.replace('<svg ', '<svg style="border-radius:20px;" ')
+                  border_style = 'style="border: 2px solid #bd93f9; border-radius: 10px; background: #44475a;"'
+                  if '<svg' in content:
+                      content = content.replace('<svg', f'<svg {border_style} ', 1)
                   
                   with open(output_path, "w", encoding="utf-8") as f:
                       f.write(content)
+                  print("Graph generated successfully.")
               except Exception as e:
                   print(f"Error processing SVG: {e}")
-                  content = None
-          
-          if not content:
-              print("Warning: Failed to generate graph. Creating fallback image.")
-              fallback_svg = f"""<svg xmlns="http://www.w3.org/2000/svg" width="800" height="300" viewBox="0 0 800 300">
-                <rect width="800" height="300" fill="#44475a" rx="20" ry="20" stroke="#ff5555" stroke-width="2"/>
-                <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="20" fill="#f8f8f2">
-                  Activity Graph Unavailable
-                </text>
-              </svg>"""
-              with open(output_path, "w", encoding="utf-8") as f:
-                  f.write(fallback_svg)
 
       - name: Push all assets to output branch
         uses: crazy-max/ghaction-github-pages@v4

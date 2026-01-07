@@ -93,42 +93,61 @@ jobs:
 
           username = os.getenv("USER_NAME")
           url = f"https://github-readme-activity-graph.vercel.app/graph?username={username}&bg_color=00000000&color=f8f8f2&line=ff79c6&point=bd93f9&area=true&hide_border=true"
+          fallback_url = f"https://raw.githubusercontent.com/{username}/{username}/output/activity_graph_framed.svg"
           output_path = "dist/activity_graph_framed.svg"
           headers = {'User-Agent': 'Mozilla/5.0'}
           
-          content = None
-          for i in range(3):
+          def save_file(data):
+              with open(output_path, "w", encoding="utf-8") as f:
+                  f.write(data)
+
+          success = False
+
+          print("Attempting to fetch new graph from Vercel...")
+          for i in range(4):
               try:
                   r = requests.get(url, headers=headers, timeout=30)
-                  if r.status_code == 200:
+                  if r.status_code == 200 and len(r.text) > 100:
                       content = r.text
-                      break
-              except Exception:
-                  time.sleep(2)
+                      w_match = re.search(r'width=["\']([\d\.]+)["\']', content)
+                      h_match = re.search(r'height=["\']([\d\.]+)["\']', content)
+                      if w_match and h_match:
+                          width = float(w_match.group(1))
+                          height = float(h_match.group(1))
+                          bg_rect = f'<rect x="0" y="0" width="{width}" height="{height}" rx="10" ry="10" fill="#44475a" />'
+                          svg_tag_match = re.match(r'(<svg[^>]+>)', content)
+                          if svg_tag_match:
+                              svg_open_tag = svg_tag_match.group(1)
+                              final_content = content.replace(svg_open_tag, svg_open_tag + bg_rect, 1)
+                              save_file(final_content)
+                              success = True
+                              print("Successfully generated new graph.")
+                              break
+              except Exception as e:
+                  print(f"Error fetching Vercel: {e}")
+                  time.sleep(3)
 
-          if not content:
-              sys.exit(1)
+          if not success:
+              print("Vercel API failed. Attempting to recover existing graph from repository...")
+              try:
+                  r = requests.get(fallback_url, timeout=20)
+                  if r.status_code == 200 and len(r.text) > 100:
+                      save_file(r.text)
+                      success = True
+                      print("Successfully recovered existing graph.")
+                  else:
+                      print(f"Recovery failed. Status: {r.status_code}")
+              except Exception as e:
+                  print(f"Error recovering: {e}")
 
-          w_match = re.search(r'width=["\']([\d\.]+)["\']', content)
-          h_match = re.search(r'height=["\']([\d\.]+)["\']', content)
-          
-          if w_match and h_match:
-              width = float(w_match.group(1))
-              height = float(h_match.group(1))
-
-              bg_rect = f'<rect x="0" y="0" width="{width}" height="{height}" rx="10" ry="10" fill="#44475a" />'
-
-              svg_tag_match = re.match(r'(<svg[^>]+>)', content)
-              if svg_tag_match:
-                  svg_open_tag = svg_tag_match.group(1)
-                  final_content = content.replace(svg_open_tag, svg_open_tag + bg_rect, 1)
-                  
-                  with open(output_path, "w", encoding="utf-8") as f:
-                      f.write(final_content)
-              else:
-                  sys.exit(1)
-          else:
-              sys.exit(1)
+          if not success:
+              print("All fetch methods failed. Generating maintenance placeholder...")
+              placeholder = """<svg width="800" height="150" xmlns="http://www.w3.org/2000/svg">
+                <rect width="800" height="150" rx="10" ry="10" fill="#44475a" />
+                <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="monospace" font-size="20" fill="#ff79c6">System Maintenance: Graph Temporarily Unavailable</text>
+              </svg>"""
+              save_file(placeholder)
+              print("Generated placeholder.")
 
       - name: Push all assets to output branch
         uses: crazy-max/ghaction-github-pages@v4

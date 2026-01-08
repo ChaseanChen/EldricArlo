@@ -27,16 +27,8 @@
 <h2 align="center"> GitHub Stats </h2>
 
 <div align="center">
-  <table style="border: none; background-color: transparent;">
-    <tr>
-      <td align="center" style="border: none; padding: 10px;">
-        <img src="https://github-readme-stats-alpha-seven-49.vercel.app/api?username=ChaseanChen&show_icons=true&bg_color=44475a&title_color=ff79c6&text_color=f8f8f2&icon_color=bd93f9&count_private=true&v=1&hide_border=true" alt="stats" />
-      </td>
-      <td align="center" style="border: none; padding: 10px;">
-        <img src="https://nirzak-streak-stats.vercel.app/?user=chaseanchen&background=44475a&ring=bd93f9&fire=ff79c6&currStreakLabel=ff79c6&currStreakNum=f8f8f2&sideLabels=f8f8f2&sideNums=f8f8f2&dates=f8f8f2&hide_border=true" alt="streak" />
-      </td>
-    </tr>
-  </table>
+  <img src="https://github-readme-stats-alpha-seven-49.vercel.app/api?username=ChaseanChen&show_icons=true&bg_color=44475a&title_color=ff79c6&text_color=f8f8f2&icon_color=bd93f9&count_private=true&v=1&hide_border=true" height="165" alt="stats" />
+  <img src="https://nirzak-streak-stats.vercel.app/?user=chaseanchen&background=44475a&ring=bd93f9&fire=ff79c6&currStreakLabel=ff79c6&currStreakNum=f8f8f2&sideLabels=f8f8f2&sideNums=f8f8f2&dates=f8f8f2&hide_border=true" height="165" alt="streak" />
 </div>
 
 <br/>

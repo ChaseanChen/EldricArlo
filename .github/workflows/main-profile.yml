@@ -48,50 +48,34 @@ jobs:
               if files:
                   try:
                       with open(os.path.join(art_dir, random.choice(files)), "r", encoding="utf-8") as f:
-                          content = f.read().rstrip()
+                          content = f.read()
                           if content.strip(): selected_art = content
                   except Exception:
                       pass
 
-          lines = selected_art.split("\n")
+          lines = selected_art.strip("\n").split("\n")
           
-          font_family = "SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace"
-          font_size = 14
-          line_height = 1.2
-          char_width_px = font_size * 0.61
-          line_height_px = font_size * line_height
-          
-          padding_x = 40
-          padding_y = 40
+          font_family = "Consolas, Monaco, Andale Mono, Ubuntu Mono, monospace"
+          line_height_px = 18 
+          padding_y = 60 
+          char_width_px = 9.6
           
           max_chars = max(len(line) for line in lines) if lines else 0
           art_width_px = max_chars * char_width_px
-          art_height_px = len(lines) * line_height_px
           
-          svg_width = int(art_width_px + padding_x * 2)
-          svg_height = int(art_height_px + padding_y * 2)
+          svg_width = int(art_width_px + 80)
+          final_height = max(150, len(lines) * line_height_px + padding_y)
           
-          start_x = padding_x
-          start_y = padding_y + font_size 
-
+          start_x = (svg_width - art_width_px) / 2
+          
           tspans = ""
-          for i, line in enumerate(lines):
-              safe_line = html.escape(line).replace(" ", "&#160;")
-              dy = f'{line_height}em' if i > 0 else "0"
-              tspans += f'<tspan x="{start_x}" dy="{dy}">{safe_line}</tspan>'
+          for line in lines:
+              safe_line = html.escape(line).replace(" ", "&#160;") 
+              tspans += f'<tspan x="{start_x}" dy="1.2em">{safe_line}</tspan>'
 
-          svg_content = f"""<svg fill="none" viewBox="0 0 {svg_width} {svg_height}" width="{svg_width}" height="{svg_height}" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-                <feMerge>
-                  <feMergeNode in="coloredBlur"/>
-                  <feMergeNode in="SourceGraphic"/>
-                </feMerge>
-              </filter>
-            </defs>
-            <rect x="2" y="2" width="{svg_width-4}" height="{svg_height-4}" fill="#282a36" rx="15" ry="15" />
-            <text x="{start_x}" y="{start_y}" font-family="{font_family}" font-weight="bold" font-size="{font_size}" fill="#f8f8f2" filter="url(#glow)">{tspans}</text>
+          svg_content = f"""<svg fill="none" viewBox="0 0 {svg_width} {final_height}" width="{svg_width}" height="{final_height}" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="2" width="{svg_width-4}" height="{final_height-4}" fill="#44475a" rx="20" ry="20" stroke="#ff79c6" stroke-width="2" />
+            <text x="{start_x}" y="20" font-family="{font_family}" font-weight="bold" font-size="15" fill="#f8f8f2" xml:space="preserve">{tspans}</text>
           </svg>"""
 
           with open(f"{output_dir}/ascii_art.svg", "w", encoding="utf-8") as f:
@@ -105,55 +89,65 @@ jobs:
         env:
           USER_NAME: ${{ github.repository_owner }}
         run: |
-          import requests, os, time, re
+          import requests, os, time, re, sys
 
           username = os.getenv("USER_NAME")
-          url = f"https://github-readme-activity-graph.vercel.app/graph?username={username}&color=f8f8f2&line=ff79c6&point=bd93f9&area=true&hide_border=true&hide_title=true"
+          url = f"https://github-readme-activity-graph.vercel.app/graph?username={username}&bg_color=00000000&color=f8f8f2&line=ff79c6&point=bd93f9&area=true&hide_border=true"
           fallback_url = f"https://raw.githubusercontent.com/{username}/{username}/output/activity_graph_framed.svg"
           output_path = "dist/activity_graph_framed.svg"
           headers = {'User-Agent': 'Mozilla/5.0'}
-
+          
           def save_file(data):
               with open(output_path, "w", encoding="utf-8") as f:
                   f.write(data)
 
-          content = None
-          
+          success = False
+
+          print("Attempting to fetch new graph from Vercel...")
           for i in range(4):
               try:
                   r = requests.get(url, headers=headers, timeout=30)
                   if r.status_code == 200 and len(r.text) > 100:
                       content = r.text
-                      break
-              except Exception:
+                      w_match = re.search(r'width=["\']([\d\.]+)["\']', content)
+                      h_match = re.search(r'height=["\']([\d\.]+)["\']', content)
+                      if w_match and h_match:
+                          width = float(w_match.group(1))
+                          height = float(h_match.group(1))
+                          bg_rect = f'<rect x="0" y="0" width="{width}" height="{height}" rx="10" ry="10" fill="#44475a" />'
+                          svg_tag_match = re.match(r'(<svg[^>]+>)', content)
+                          if svg_tag_match:
+                              svg_open_tag = svg_tag_match.group(1)
+                              final_content = content.replace(svg_open_tag, svg_open_tag + bg_rect, 1)
+                              save_file(final_content)
+                              success = True
+                              print("Successfully generated new graph.")
+                              break
+              except Exception as e:
+                  print(f"Error fetching Vercel: {e}")
                   time.sleep(3)
 
-          if not content:
+          if not success:
+              print("Vercel API failed. Attempting to recover existing graph from repository...")
               try:
                   r = requests.get(fallback_url, timeout=20)
-                  if r.status_code == 200:
-                      content = r.text
-              except:
-                  pass
+                  if r.status_code == 200 and len(r.text) > 100:
+                      save_file(r.text)
+                      success = True
+                      print("Successfully recovered existing graph.")
+                  else:
+                      print(f"Recovery failed. Status: {r.status_code}")
+              except Exception as e:
+                  print(f"Error recovering: {e}")
 
-          if content:
-              w_match = re.search(r'width=["\']([\d\.]+)["\']', content)
-              h_match = re.search(r'height=["\']([\d\.]+)["\']', content)
-              
-              if w_match and h_match:
-                  width = float(w_match.group(1))
-                  height = float(h_match.group(1))
-                  bg_rect = f'<rect x="0" y="0" width="{width}" height="{height}" rx="10" ry="10" fill="#44475a" />'
-                  final_content = re.sub(r'(<svg[^>]*>)', r'\1' + bg_rect, content, count=1)
-                  save_file(final_content)
-              else:
-                  save_file(content)
-          else:
+          if not success:
+              print("All fetch methods failed. Generating maintenance placeholder...")
               placeholder = """<svg width="800" height="150" xmlns="http://www.w3.org/2000/svg">
                 <rect width="800" height="150" rx="10" ry="10" fill="#44475a" />
-                <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="monospace" font-size="20" fill="#ff79c6">Graph Temporarily Unavailable</text>
+                <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="monospace" font-size="20" fill="#ff79c6">System Maintenance: Graph Temporarily Unavailable</text>
               </svg>"""
               save_file(placeholder)
+              print("Generated placeholder.")
 
       - name: Push all assets to output branch
         uses: crazy-max/ghaction-github-pages@v4

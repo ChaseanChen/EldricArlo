@@ -17,15 +17,17 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
+          python-version: '3.10'
+          cache: 'pip'
 
       - name: Install dependencies
         run: pip install requests
 
-      - name: Create Dist Directory
-        run: mkdir -p dist
+      - name: Prepare Directories
+        run: |
+          rm -rf dist
+          mkdir -p dist
 
-      # === 任务 1: 生成贪吃蛇 (这个必须用 Action，因为涉及复杂逻辑) ===
       - name: Generate Snake
         uses: Platane/snk@v3
         with:
@@ -34,8 +36,7 @@ jobs:
             dist/github-contribution-grid-snake.svg?color_snake=#ff79c6&color_dots=#44475a,#6272a4,#bd93f9,#ff79c6,#ffffff
             dist/github-contribution-grid-snake-dark.svg?palette=github-dark&color_snake=#ff79c6&color_dots=#44475a,#6272a4,#bd93f9,#ff79c6,#ffffff
 
-      # === 任务 2: 运行你的 Python 脚本 ===
-      - name: Generate Custom Assets (ASCII & Graph)
+      - name: Generate Custom Assets
         env:
           USER_NAME: ${{ github.repository_owner }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -43,17 +44,12 @@ jobs:
           python scripts/generate_ascii.py
           python scripts/generate_graph.py
 
-      # === 收尾: 设置权限并提交 ===
-      - name: Fix permissions
-        run: |
-          sudo chown -R $USER:$USER dist
-          sudo chmod -R 755 dist
-
-      - name: Push all assets to output branch
+      - name: Push to Output Branch
         uses: crazy-max/ghaction-github-pages@v4
         with:
           target_branch: output
           build_dir: dist
           keep_history: false
+          jekyll: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

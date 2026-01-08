@@ -9,7 +9,7 @@
 <br/>
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/ChaseanChen/ChaseanChen/output/ascii_art.svg" alt="Random ASCII Art" width="90%" />
+  <img src="https://raw.githubusercontent.com/ChaseanChen/ChaseanChen/output/ascii_art.svg" alt="Random ASCII Art" width="100%" />
 </div>
 
 <br/>
@@ -45,7 +45,7 @@
 
 <div align="center">
   <a href="https://github.com/ChaseanChen">
-    <img src="https://raw.githubusercontent.com/ChaseanChen/ChaseanChen/output/activity_graph_framed.svg" alt="My Activity Graph" width="95%" />
+    <img src="https://raw.githubusercontent.com/ChaseanChen/ChaseanChen/output/activity_graph_framed.svg" alt="My Activity Graph" width="100%" />
   </a>
 </div>
 

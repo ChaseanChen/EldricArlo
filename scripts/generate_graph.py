@@ -1,6 +1,6 @@
 import os
 import requests
-import uuid # 引入 UUID 用于生成唯一 ID
+import uuid
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from pathlib import Path
@@ -35,7 +35,7 @@ PADDING_BOTTOM = 40
 PADDING_X = 40
 GRAPH_HEIGHT = HEIGHT - PADDING_TOP - PADDING_BOTTOM
 
-# 生成唯一ID，防止 README 中多个 SVG 的 CSS/渐变定义冲突
+# 生成唯一ID
 UNIQUE_ID = str(uuid.uuid4())[:8]
 
 def get_session():
@@ -109,20 +109,24 @@ def generate_svg(data):
     path_d_smooth = get_smooth_path(points)
     area_d = f"{path_d_smooth} L {points[-1][0]},{HEIGHT-PADDING_BOTTOM} L {points[0][0]},{HEIGHT-PADDING_BOTTOM} Z"
 
-    # 日期标签：每隔5天显示一次
+    # 日期标签
     date_labels = ""
     for i in range(0, len(points), 5):
         dt_obj = datetime.strptime(dates[i], "%Y-%m-%d")
         fmt_date = dt_obj.strftime("%m-%d")
         date_labels += f'<text x="{points[i][0]}" y="{HEIGHT - 15}" class="axis-text" text-anchor="middle">{fmt_date}</text>'
 
-    # 数据点：不再依赖交互，而是高亮显示有贡献的日子
+    # 数据点
     circles = ""
     for i, p in enumerate(points):
-        # 只有当贡献数 > 0 或者是今天(最后一个点)时，才显示点
         if counts[i] > 0 or i == len(points) - 1:
             circles += f'<circle cx="{p[0]:.2f}" cy="{p[1]:.2f}" r="3" class="visible-point" />'
 
+    # --- 核心修改：循环动画逻辑 ---
+    # 总时长 10秒
+    # 0% - 20% (0-2秒): 线条绘制 + 渐变淡入
+    # 20% - 90% (2-9秒): 保持静止展示
+    # 90% - 100% (9-10秒): 快速淡出，重置
     svg_content = f"""
     <svg fill="none" viewBox="0 0 {WIDTH} {HEIGHT}" width="{WIDTH}" height="{HEIGHT}" xmlns="http://www.w3.org/2000/svg">
       <style>
@@ -130,37 +134,48 @@ def generate_svg(data):
         .title {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 18px; font-weight: bold; fill: {COLOR_LINE}; }}
         .axis-text {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 10px; fill: {COLOR_AXIS}; }}
         
-        /* 动画定义：使用唯一类名防止冲突 */
-        @keyframes drawLine_{UNIQUE_ID} {{
-            0% {{ stroke-dashoffset: 3000; }}
-            100% {{ stroke-dashoffset: 0; }}
+        /* 1. 线条动画：画出 -> 停留 -> 消失 -> 循环 */
+        @keyframes drawCycle_{UNIQUE_ID} {{
+            0% {{ stroke-dashoffset: 3000; opacity: 1; }}
+            20% {{ stroke-dashoffset: 0; opacity: 1; }} 
+            90% {{ stroke-dashoffset: 0; opacity: 1; }} 
+            95% {{ stroke-dashoffset: 0; opacity: 0; }}
+            100% {{ stroke-dashoffset: 3000; opacity: 0; }}
         }}
-        @keyframes fadeIn_{UNIQUE_ID} {{
+
+        /* 2. 面积填充动画：淡入 -> 停留 -> 消失 -> 循环 */
+        @keyframes fillCycle_{UNIQUE_ID} {{
             0% {{ opacity: 0; }}
-            100% {{ opacity: 1; }}
+            20% {{ opacity: 0; }}
+            30% {{ opacity: 1; }}
+            90% {{ opacity: 1; }}
+            100% {{ opacity: 0; }}
         }}
-        @keyframes popIn_{UNIQUE_ID} {{
+
+        /* 3. 点动画：弹处 -> 停留 -> 消失 -> 循环 */
+        @keyframes pointCycle_{UNIQUE_ID} {{
             0% {{ r: 0; opacity: 0; }}
-            80% {{ r: 4; opacity: 1; }}
-            100% {{ r: 3; opacity: 1; }}
+            20% {{ r: 0; opacity: 0; }}
+            25% {{ r: 4; opacity: 1; }}
+            90% {{ r: 4; opacity: 1; }}
+            100% {{ r: 0; opacity: 0; }}
         }}
 
         .line-path {{
             stroke-dasharray: 3000;
             stroke-dashoffset: 3000;
-            animation: drawLine_{UNIQUE_ID} 2.5s ease-out forwards;
+            animation: drawCycle_{UNIQUE_ID} 10s ease-in-out infinite;
         }}
         .area-fill {{
             opacity: 0;
-            animation: fadeIn_{UNIQUE_ID} 1.5s ease-out 1s forwards; /* 延迟填充 */
+            animation: fillCycle_{UNIQUE_ID} 10s ease-in-out infinite;
         }}
         .visible-point {{
             fill: {COLOR_BG};
             stroke: {COLOR_POINT};
             stroke-width: 2;
-            animation: popIn_{UNIQUE_ID} 0.5s ease-out forwards;
-            animation-delay: 2s; /* 线画完再出点 */
-            opacity: 0; /* 初始隐藏 */
+            opacity: 0;
+            animation: pointCycle_{UNIQUE_ID} 10s ease-in-out infinite;
         }}
       </style>
 
@@ -189,6 +204,6 @@ try:
     days = fetch_contributions()
     svg = generate_svg(days)
     OUTPUT_PATH.write_text(svg, encoding="utf-8")
-    print(f"Generated at {OUTPUT_PATH}")
+    print(f"Generated looping animated graph at {OUTPUT_PATH}")
 except Exception as e:
     exit(1)

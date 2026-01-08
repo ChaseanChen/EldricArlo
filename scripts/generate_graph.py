@@ -1,3 +1,5 @@
+# generate_graph.py
+
 import os
 import requests
 import uuid
@@ -10,6 +12,7 @@ USERNAME = os.getenv("USER_NAME")
 TOKEN = os.getenv("GITHUB_TOKEN")
 
 if not USERNAME or not TOKEN:
+    print("Error: Environment variables USER_NAME or GITHUB_TOKEN are missing.")
     exit(1)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -71,7 +74,8 @@ def fetch_contributions():
         weeks = data["data"]["user"]["contributionsCollection"]["contributionCalendar"]["weeks"]
         all_days = [day for week in weeks for day in week["contributionDays"]]
         return all_days[-DAYS_TO_SHOW:]
-    except Exception:
+    except Exception as e:
+        print(f"Failed to fetch data: {e}")
         raise
 
 def get_smooth_path(points):
@@ -114,7 +118,7 @@ def generate_svg(data):
     for i, p in enumerate(points):
         if counts[i] > 0 or i == len(points) - 1:
             circles += f'<circle cx="{p[0]:.2f}" cy="{p[1]:.2f}" r="3" class="visible-point" />'
-
+    
     svg_content = f"""
     <svg fill="none" viewBox="0 0 {WIDTH} {HEIGHT}" width="{WIDTH}" height="{HEIGHT}" xmlns="http://www.w3.org/2000/svg">
       <style>
@@ -132,16 +136,16 @@ def generate_svg(data):
 
         @keyframes fillCycle_{UNIQUE_ID} {{
             0% {{ opacity: 0; }}
-            25% {{ opacity: 0; }}
-            40% {{ opacity: 1; }}
+            35% {{ opacity: 0; }}
+            50% {{ opacity: 1; }}
             85% {{ opacity: 1; }}
             100% {{ opacity: 0; }}
         }}
 
         @keyframes pointCycle_{UNIQUE_ID} {{
             0% {{ r: 0; opacity: 0; }}
-            20% {{ r: 0; opacity: 0; }}
-            30% {{ r: 4; opacity: 1; }}
+            35% {{ r: 0; opacity: 0; }}
+            45% {{ r: 4; opacity: 1; }}
             85% {{ r: 4; opacity: 1; }}
             100% {{ r: 0; opacity: 0; }}
         }}
@@ -162,7 +166,7 @@ def generate_svg(data):
             stroke: {COLOR_POINT};
             stroke-width: 2;
             opacity: 0;
-            animation: pointCycle_{UNIQUE_ID} 15s cubic-bezier(0.175, 0.885, 0.32, 1.275) infinite;
+            animation: pointCycle_{UNIQUE_ID} 15s ease-in-out infinite;
         }}
       </style>
 
@@ -191,5 +195,6 @@ try:
     days = fetch_contributions()
     svg = generate_svg(days)
     OUTPUT_PATH.write_text(svg, encoding="utf-8")
-except Exception:
+    print(f"Generated luxurious animated graph at {OUTPUT_PATH}")
+except Exception as e:
     exit(1)

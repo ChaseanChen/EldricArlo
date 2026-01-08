@@ -1,3 +1,5 @@
+# generate_ascii.py
+
 import random
 import html
 from pathlib import Path

@@ -6,12 +6,10 @@ from urllib3.util.retry import Retry
 from pathlib import Path
 from datetime import datetime
 
-# --- Configuration ---
 USERNAME = os.getenv("USER_NAME")
 TOKEN = os.getenv("GITHUB_TOKEN")
 
 if not USERNAME or not TOKEN:
-    print("Error: Environment variables USER_NAME or GITHUB_TOKEN are missing.")
     exit(1)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -19,7 +17,6 @@ OUTPUT_DIR = BASE_DIR / "dist"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 OUTPUT_PATH = OUTPUT_DIR / "activity_graph_framed.svg"
 
-# Dracula Theme
 COLOR_BG = "#44475a"
 COLOR_LINE = "#ff79c6"
 COLOR_POINT = "#bd93f9"
@@ -35,7 +32,6 @@ PADDING_BOTTOM = 40
 PADDING_X = 40
 GRAPH_HEIGHT = HEIGHT - PADDING_TOP - PADDING_BOTTOM
 
-# 生成唯一ID
 UNIQUE_ID = str(uuid.uuid4())[:8]
 
 def get_session():
@@ -75,8 +71,7 @@ def fetch_contributions():
         weeks = data["data"]["user"]["contributionsCollection"]["contributionCalendar"]["weeks"]
         all_days = [day for week in weeks for day in week["contributionDays"]]
         return all_days[-DAYS_TO_SHOW:]
-    except Exception as e:
-        print(f"Failed to fetch data: {e}")
+    except Exception:
         raise
 
 def get_smooth_path(points):
@@ -109,25 +104,17 @@ def generate_svg(data):
     path_d_smooth = get_smooth_path(points)
     area_d = f"{path_d_smooth} L {points[-1][0]},{HEIGHT-PADDING_BOTTOM} L {points[0][0]},{HEIGHT-PADDING_BOTTOM} Z"
 
-    # 日期标签
     date_labels = ""
     for i in range(0, len(points), 5):
         dt_obj = datetime.strptime(dates[i], "%Y-%m-%d")
         fmt_date = dt_obj.strftime("%m-%d")
         date_labels += f'<text x="{points[i][0]}" y="{HEIGHT - 15}" class="axis-text" text-anchor="middle">{fmt_date}</text>'
 
-    # 数据点
     circles = ""
     for i, p in enumerate(points):
         if counts[i] > 0 or i == len(points) - 1:
             circles += f'<circle cx="{p[0]:.2f}" cy="{p[1]:.2f}" r="3" class="visible-point" />'
 
-    # --- 核心修改：极致丝滑的减速动画 ---
-    # 总时长: 15秒 (拉长总周期)
-    # 绘制阶段: 40% (即 6秒) -> 足够长，配合 cubic-bezier 实现快到慢
-    # 展示阶段: 45% (即 6.75秒)
-    # 淡出阶段: 15% (即 2.25秒)
-    
     svg_content = f"""
     <svg fill="none" viewBox="0 0 {WIDTH} {HEIGHT}" width="{WIDTH}" height="{HEIGHT}" xmlns="http://www.w3.org/2000/svg">
       <style>
@@ -135,29 +122,26 @@ def generate_svg(data):
         .title {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 18px; font-weight: bold; fill: {COLOR_LINE}; }}
         .axis-text {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 10px; fill: {COLOR_AXIS}; }}
         
-        /* 1. 线条动画：使用定制的 Cubic Bezier 实现 "快启动 -> 极慢结束" */
         @keyframes drawCycle_{UNIQUE_ID} {{
             0% {{ stroke-dashoffset: 3000; opacity: 1; }}
-            40% {{ stroke-dashoffset: 0; opacity: 1; }}  /* 0%到40% 是绘制阶段 */
-            85% {{ stroke-dashoffset: 0; opacity: 1; }}  /* 保持 */
-            95% {{ stroke-dashoffset: 0; opacity: 0; }}  /* 淡出 */
-            100% {{ stroke-dashoffset: 3000; opacity: 0; }} /* 重置 */
+            40% {{ stroke-dashoffset: 0; opacity: 1; }}
+            85% {{ stroke-dashoffset: 0; opacity: 1; }}
+            95% {{ stroke-dashoffset: 0; opacity: 0; }}
+            100% {{ stroke-dashoffset: 3000; opacity: 0; }}
         }}
 
-        /* 2. 面积填充动画 */
         @keyframes fillCycle_{UNIQUE_ID} {{
             0% {{ opacity: 0; }}
-            35% {{ opacity: 0; }} /* 线条快画完时才开始 */
-            50% {{ opacity: 1; }} /* 慢慢浮现 */
+            25% {{ opacity: 0; }}
+            40% {{ opacity: 1; }}
             85% {{ opacity: 1; }}
             100% {{ opacity: 0; }}
         }}
 
-        /* 3. 点动画 */
         @keyframes pointCycle_{UNIQUE_ID} {{
             0% {{ r: 0; opacity: 0; }}
-            35% {{ r: 0; opacity: 0; }}
-            45% {{ r: 4; opacity: 1; }}
+            20% {{ r: 0; opacity: 0; }}
+            30% {{ r: 4; opacity: 1; }}
             85% {{ r: 4; opacity: 1; }}
             100% {{ r: 0; opacity: 0; }}
         }}
@@ -165,18 +149,11 @@ def generate_svg(data):
         .line-path {{
             stroke-dasharray: 3000;
             stroke-dashoffset: 3000;
-            /* 
-               cubic-bezier(0.22, 1, 0.36, 1) 
-               这个参数是 "Exponential Ease Out" 的变体。
-               含义：快速冲过前50%，然后在剩下的时间里无限逼近终点。
-               就像毛笔写完一笔后的那种回锋感。
-            */
             animation: drawCycle_{UNIQUE_ID} 15s cubic-bezier(0.22, 1, 0.36, 1) infinite;
         }}
         
         .area-fill {{
             opacity: 0;
-            /* 填充还是用普通的 ease-in-out，柔和一点 */
             animation: fillCycle_{UNIQUE_ID} 15s ease-in-out infinite;
         }}
         
@@ -185,7 +162,7 @@ def generate_svg(data):
             stroke: {COLOR_POINT};
             stroke-width: 2;
             opacity: 0;
-            animation: pointCycle_{UNIQUE_ID} 15s ease-in-out infinite;
+            animation: pointCycle_{UNIQUE_ID} 15s cubic-bezier(0.175, 0.885, 0.32, 1.275) infinite;
         }}
       </style>
 
@@ -214,6 +191,5 @@ try:
     days = fetch_contributions()
     svg = generate_svg(days)
     OUTPUT_PATH.write_text(svg, encoding="utf-8")
-    print(f"Generated luxurious animated graph at {OUTPUT_PATH}")
-except Exception as e:
+except Exception:
     exit(1)

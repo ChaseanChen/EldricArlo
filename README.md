@@ -24,6 +24,20 @@
   <h3> A passionate developer enthusiastic about Code Learning and Open Source. </h3>
 </div>
 
+<!-- <div align="center">
+  <a href="https://github.com/ChaseanChen">
+    <img src="https://raw.githubusercontent.com/ChaseanChen/ChaseanChen/output/activity_graph_framed.svg" alt="My Activity Graph" width="100%" />
+  </a>
+</div> -->
+
+<div align="center">
+  <a href="https://github.com/ChaseanChen">
+    <!-- 我加了一个 ?v=1 来强制浏览器和 GitHub 重新拉取图片 -->
+    <!-- 之后每次你觉得没刷新，手动把这个数字改成 2, 3, 4 即可强制刷新 -->
+    <img src="https://raw.githubusercontent.com/ChaseanChen/ChaseanChen/output/activity_graph_framed.svg?v=1" alt="My Activity Graph" width="100%" />
+  </a>
+</div>
+
 <h2 align="center"> GitHub Stats </h2>
 
 <div align="center">
@@ -42,20 +56,6 @@
 </div>
 
 <br/>
-
-<!-- <div align="center">
-  <a href="https://github.com/ChaseanChen">
-    <img src="https://raw.githubusercontent.com/ChaseanChen/ChaseanChen/output/activity_graph_framed.svg" alt="My Activity Graph" width="100%" />
-  </a>
-</div> -->
-
-<div align="center">
-  <a href="https://github.com/ChaseanChen">
-    <!-- 我加了一个 ?v=1 来强制浏览器和 GitHub 重新拉取图片 -->
-    <!-- 之后每次你觉得没刷新，手动把这个数字改成 2, 3, 4 即可强制刷新 -->
-    <img src="https://raw.githubusercontent.com/ChaseanChen/ChaseanChen/output/activity_graph_framed.svg?v=1" alt="My Activity Graph" width="100%" />
-  </a>
-</div>
 
 <h2 align="center"> Connect with me </h2>
 

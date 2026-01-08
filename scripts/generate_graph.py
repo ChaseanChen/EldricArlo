@@ -122,11 +122,12 @@ def generate_svg(data):
         if counts[i] > 0 or i == len(points) - 1:
             circles += f'<circle cx="{p[0]:.2f}" cy="{p[1]:.2f}" r="3" class="visible-point" />'
 
-    # --- 核心修改：循环动画逻辑 ---
-    # 总时长 10秒
-    # 0% - 20% (0-2秒): 线条绘制 + 渐变淡入
-    # 20% - 90% (2-9秒): 保持静止展示
-    # 90% - 100% (9-10秒): 快速淡出，重置
+    # --- 核心修改：慢速优雅动画逻辑 ---
+    # 总时长: 12秒
+    # 0% - 35% (约4.2秒): 缓慢绘制线条 (Draw)
+    # 35% - 85% (约6秒): 保持静止展示 (Hold)
+    # 85% - 100% (约1.8秒): 慢慢淡出并重置 (Fade Out)
+    
     svg_content = f"""
     <svg fill="none" viewBox="0 0 {WIDTH} {HEIGHT}" width="{WIDTH}" height="{HEIGHT}" xmlns="http://www.w3.org/2000/svg">
       <style>
@@ -134,48 +135,49 @@ def generate_svg(data):
         .title {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 18px; font-weight: bold; fill: {COLOR_LINE}; }}
         .axis-text {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 10px; fill: {COLOR_AXIS}; }}
         
-        /* 1. 线条动画：画出 -> 停留 -> 消失 -> 循环 */
+        /* 1. 线条动画 */
         @keyframes drawCycle_{UNIQUE_ID} {{
             0% {{ stroke-dashoffset: 3000; opacity: 1; }}
-            20% {{ stroke-dashoffset: 0; opacity: 1; }} 
-            90% {{ stroke-dashoffset: 0; opacity: 1; }} 
+            35% {{ stroke-dashoffset: 0; opacity: 1; }}  /* 画完的时间点推后到 35% */
+            85% {{ stroke-dashoffset: 0; opacity: 1; }}  /* 保持到 85% */
             95% {{ stroke-dashoffset: 0; opacity: 0; }}
             100% {{ stroke-dashoffset: 3000; opacity: 0; }}
         }}
 
-        /* 2. 面积填充动画：淡入 -> 停留 -> 消失 -> 循环 */
+        /* 2. 面积填充动画 */
         @keyframes fillCycle_{UNIQUE_ID} {{
             0% {{ opacity: 0; }}
-            20% {{ opacity: 0; }}
-            30% {{ opacity: 1; }}
-            90% {{ opacity: 1; }}
+            30% {{ opacity: 0; }} /* 线条快画完时才开始出现 */
+            45% {{ opacity: 1; }} /* 柔和淡入 */
+            85% {{ opacity: 1; }}
             100% {{ opacity: 0; }}
         }}
 
-        /* 3. 点动画：弹处 -> 停留 -> 消失 -> 循环 */
+        /* 3. 点动画 */
         @keyframes pointCycle_{UNIQUE_ID} {{
             0% {{ r: 0; opacity: 0; }}
-            20% {{ r: 0; opacity: 0; }}
-            25% {{ r: 4; opacity: 1; }}
-            90% {{ r: 4; opacity: 1; }}
+            30% {{ r: 0; opacity: 0; }}
+            40% {{ r: 4; opacity: 1; }} /* 像气泡一样浮现 */
+            85% {{ r: 4; opacity: 1; }}
             100% {{ r: 0; opacity: 0; }}
         }}
 
         .line-path {{
             stroke-dasharray: 3000;
             stroke-dashoffset: 3000;
-            animation: drawCycle_{UNIQUE_ID} 10s ease-in-out infinite;
+            /* 调整为12秒，且使用 ease-in-out 让起步和收尾更丝滑 */
+            animation: drawCycle_{UNIQUE_ID} 12s ease-in-out infinite;
         }}
         .area-fill {{
             opacity: 0;
-            animation: fillCycle_{UNIQUE_ID} 10s ease-in-out infinite;
+            animation: fillCycle_{UNIQUE_ID} 12s ease-in-out infinite;
         }}
         .visible-point {{
             fill: {COLOR_BG};
             stroke: {COLOR_POINT};
             stroke-width: 2;
             opacity: 0;
-            animation: pointCycle_{UNIQUE_ID} 10s ease-in-out infinite;
+            animation: pointCycle_{UNIQUE_ID} 12s ease-in-out infinite;
         }}
       </style>
 
@@ -204,6 +206,6 @@ try:
     days = fetch_contributions()
     svg = generate_svg(days)
     OUTPUT_PATH.write_text(svg, encoding="utf-8")
-    print(f"Generated looping animated graph at {OUTPUT_PATH}")
+    print(f"Generated slow-motion animated graph at {OUTPUT_PATH}")
 except Exception as e:
     exit(1)

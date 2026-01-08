@@ -34,7 +34,7 @@
   <a href="https://github.com/ChaseanChen">
     <!-- 我加了一个 ?v=1 来强制浏览器和 GitHub 重新拉取图片 -->
     <!-- 之后每次你觉得没刷新，手动把这个数字改成 2, 3, 4 即可强制刷新 -->
-    <img src="https://raw.githubusercontent.com/ChaseanChen/ChaseanChen/output/activity_graph_framed.svg?v=50" alt="My Activity Graph" width="100%" />
+    <img src="https://raw.githubusercontent.com/ChaseanChen/ChaseanChen/output/activity_graph_framed.svg?v=101" alt="My Activity Graph" width="100%" />
   </a>
 </div>
 

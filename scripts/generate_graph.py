@@ -122,11 +122,11 @@ def generate_svg(data):
         if counts[i] > 0 or i == len(points) - 1:
             circles += f'<circle cx="{p[0]:.2f}" cy="{p[1]:.2f}" r="3" class="visible-point" />'
 
-    # --- 核心修改：慢速优雅动画逻辑 ---
-    # 总时长: 12秒
-    # 0% - 35% (约4.2秒): 缓慢绘制线条 (Draw)
-    # 35% - 85% (约6秒): 保持静止展示 (Hold)
-    # 85% - 100% (约1.8秒): 慢慢淡出并重置 (Fade Out)
+    # --- 核心修改：极致丝滑的减速动画 ---
+    # 总时长: 15秒 (拉长总周期)
+    # 绘制阶段: 40% (即 6秒) -> 足够长，配合 cubic-bezier 实现快到慢
+    # 展示阶段: 45% (即 6.75秒)
+    # 淡出阶段: 15% (即 2.25秒)
     
     svg_content = f"""
     <svg fill="none" viewBox="0 0 {WIDTH} {HEIGHT}" width="{WIDTH}" height="{HEIGHT}" xmlns="http://www.w3.org/2000/svg">
@@ -135,20 +135,20 @@ def generate_svg(data):
         .title {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 18px; font-weight: bold; fill: {COLOR_LINE}; }}
         .axis-text {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 10px; fill: {COLOR_AXIS}; }}
         
-        /* 1. 线条动画 */
+        /* 1. 线条动画：使用定制的 Cubic Bezier 实现 "快启动 -> 极慢结束" */
         @keyframes drawCycle_{UNIQUE_ID} {{
             0% {{ stroke-dashoffset: 3000; opacity: 1; }}
-            35% {{ stroke-dashoffset: 0; opacity: 1; }}  /* 画完的时间点推后到 35% */
-            85% {{ stroke-dashoffset: 0; opacity: 1; }}  /* 保持到 85% */
-            95% {{ stroke-dashoffset: 0; opacity: 0; }}
-            100% {{ stroke-dashoffset: 3000; opacity: 0; }}
+            40% {{ stroke-dashoffset: 0; opacity: 1; }}  /* 0%到40% 是绘制阶段 */
+            85% {{ stroke-dashoffset: 0; opacity: 1; }}  /* 保持 */
+            95% {{ stroke-dashoffset: 0; opacity: 0; }}  /* 淡出 */
+            100% {{ stroke-dashoffset: 3000; opacity: 0; }} /* 重置 */
         }}
 
         /* 2. 面积填充动画 */
         @keyframes fillCycle_{UNIQUE_ID} {{
             0% {{ opacity: 0; }}
-            30% {{ opacity: 0; }} /* 线条快画完时才开始出现 */
-            45% {{ opacity: 1; }} /* 柔和淡入 */
+            35% {{ opacity: 0; }} /* 线条快画完时才开始 */
+            50% {{ opacity: 1; }} /* 慢慢浮现 */
             85% {{ opacity: 1; }}
             100% {{ opacity: 0; }}
         }}
@@ -156,8 +156,8 @@ def generate_svg(data):
         /* 3. 点动画 */
         @keyframes pointCycle_{UNIQUE_ID} {{
             0% {{ r: 0; opacity: 0; }}
-            30% {{ r: 0; opacity: 0; }}
-            40% {{ r: 4; opacity: 1; }} /* 像气泡一样浮现 */
+            35% {{ r: 0; opacity: 0; }}
+            45% {{ r: 4; opacity: 1; }}
             85% {{ r: 4; opacity: 1; }}
             100% {{ r: 0; opacity: 0; }}
         }}
@@ -165,19 +165,27 @@ def generate_svg(data):
         .line-path {{
             stroke-dasharray: 3000;
             stroke-dashoffset: 3000;
-            /* 调整为12秒，且使用 ease-in-out 让起步和收尾更丝滑 */
-            animation: drawCycle_{UNIQUE_ID} 12s ease-in-out infinite;
+            /* 
+               cubic-bezier(0.22, 1, 0.36, 1) 
+               这个参数是 "Exponential Ease Out" 的变体。
+               含义：快速冲过前50%，然后在剩下的时间里无限逼近终点。
+               就像毛笔写完一笔后的那种回锋感。
+            */
+            animation: drawCycle_{UNIQUE_ID} 15s cubic-bezier(0.22, 1, 0.36, 1) infinite;
         }}
+        
         .area-fill {{
             opacity: 0;
-            animation: fillCycle_{UNIQUE_ID} 12s ease-in-out infinite;
+            /* 填充还是用普通的 ease-in-out，柔和一点 */
+            animation: fillCycle_{UNIQUE_ID} 15s ease-in-out infinite;
         }}
+        
         .visible-point {{
             fill: {COLOR_BG};
             stroke: {COLOR_POINT};
             stroke-width: 2;
             opacity: 0;
-            animation: pointCycle_{UNIQUE_ID} 12s ease-in-out infinite;
+            animation: pointCycle_{UNIQUE_ID} 15s ease-in-out infinite;
         }}
       </style>
 
@@ -206,6 +214,6 @@ try:
     days = fetch_contributions()
     svg = generate_svg(days)
     OUTPUT_PATH.write_text(svg, encoding="utf-8")
-    print(f"Generated slow-motion animated graph at {OUTPUT_PATH}")
+    print(f"Generated luxurious animated graph at {OUTPUT_PATH}")
 except Exception as e:
     exit(1)

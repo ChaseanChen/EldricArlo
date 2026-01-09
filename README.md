@@ -24,12 +24,6 @@
   <h3> A passionate developer enthusiastic about Code Learning and Open Source. </h3>
 </div>
 
-<!-- <div align="center">
-  <a href="https://github.com/ChaseanChen">
-    <img src="https://raw.githubusercontent.com/ChaseanChen/ChaseanChen/output/activity_graph_framed.svg" alt="My Activity Graph" width="100%" />
-  </a>
-</div> -->
-
 <div align="center">
   <a href="https://github.com/ChaseanChen">
     <img src="https://raw.githubusercontent.com/ChaseanChen/ChaseanChen/output/activity_graph_framed.svg?v=101" alt="My Activity Graph" width="100%" />
